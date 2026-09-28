@@ -36,6 +36,12 @@ const envSchema = z.object({
    * Use `none` only for cross-site deployments; the refresh endpoint also checks the Origin header.
    */
   COOKIE_SAMESITE: z.enum(['strict', 'lax', 'none']).default('strict'),
+
+  /**
+   * Administrative policy: minimum days after a recorded donation before the system may contact a
+   * donor about donating again. Not a medical rule — blood-bank staff set it to local regulations.
+   */
+  DONOR_CONTACT_INTERVAL_DAYS: z.coerce.number().int().min(1).max(365).default(90),
 });
 
 export type Env = z.infer<typeof envSchema>;

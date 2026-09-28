@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { listUsersQuerySchema, objectIdSchema, updateUserStatusSchema } from '@bbms/shared';
+import {
+  listUsersQuerySchema,
+  objectIdSchema,
+  updateAccountSchema,
+  updateUserStatusSchema,
+} from '@bbms/shared';
 import { authenticate } from '../../middleware/authenticate.js';
 import { authorize } from '../../middleware/authorize.js';
 import { validate } from '../../middleware/validate.js';
@@ -10,6 +15,13 @@ export const usersRouter = Router();
 const idParams = z.object({ id: objectIdSchema });
 
 usersRouter.use(authenticate);
+
+usersRouter.patch(
+  '/me',
+  authorize('account:self'),
+  validate({ body: updateAccountSchema }),
+  controller.updateMe,
+);
 
 usersRouter.get(
   '/',

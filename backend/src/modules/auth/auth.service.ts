@@ -14,7 +14,7 @@ import { AppError } from '../../utils/AppError.js';
 import { withTransaction } from '../../utils/mongoose.js';
 import type { Actor } from '../../utils/actor.js';
 import { recordAudit } from '../audit/audit.service.js';
-import { DonorProfileModel } from '../donors/donorProfile.model.js';
+import { DonorProfileModel, cityKeyOf } from '../donors/donorProfile.model.js';
 import { HospitalModel } from '../hospitals/hospital.model.js';
 import { UserModel, type User } from '../users/user.model.js';
 import { toAuthUser } from '../users/user.presenter.js';
@@ -157,8 +157,10 @@ export function registerDonor(input: RegisterDonorInput, context: RequestContext
             userId,
             bloodGroup: input.bloodGroup,
             dateOfBirth: new Date(input.dateOfBirth),
-            location: { city: input.city, area: input.area },
-            availabilityHistory: [{ status: 'AVAILABLE', changedAt: new Date() }],
+            location: { city: input.city, cityKey: cityKeyOf(input.city), area: input.area },
+            availabilityHistory: [
+              { status: 'AVAILABLE', changedAt: new Date(), availableAgainAt: null },
+            ],
           },
         ],
         { session },

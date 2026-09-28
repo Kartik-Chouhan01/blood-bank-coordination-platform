@@ -1,7 +1,19 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { hasPermission, ROLE_LABELS, type Permission } from '@bbms/shared';
-import { LayoutDashboard, LogOut, Menu, UserCog, Users, X, type LucideIcon } from 'lucide-react';
+import {
+  Bell,
+  Droplets,
+  HeartHandshake,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  UserCog,
+  UserRound,
+  Users,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { homePathFor } from '@/constants/navigation';
 import { Logo } from '@/components/domain/Logo';
@@ -25,6 +37,10 @@ function navItemsFor(homePath: string): NavItem[] {
       permission: 'account:self',
       end: true,
     },
+    { to: '/donor/profile', label: 'My profile', icon: UserRound, permission: 'donor:self' },
+    { to: '/donor/donations', label: 'Donations', icon: Droplets, permission: 'donor:self' },
+    { to: '/donor/settings', label: 'Settings', icon: Bell, permission: 'donor:self' },
+    { to: '/admin/donors', label: 'Donors', icon: HeartHandshake, permission: 'donors:read' },
     { to: '/admin/users', label: 'Users', icon: Users, permission: 'users:read' },
     { to: '/account', label: 'Account', icon: UserCog, permission: 'account:self' },
   ];

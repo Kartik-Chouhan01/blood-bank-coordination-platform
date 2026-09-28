@@ -116,6 +116,7 @@ Backend (`backend/.env`, see [backend/.env.example](backend/.env.example)):
 | `BCRYPT_ROUNDS`                           |          | `12`                    | Password hashing cost (≥ 10 in production)                     |
 | `APP_URL`                                 |          | `http://localhost:5173` | Web app URL used in email links                                |
 | `COOKIE_SAMESITE`                         |          | `strict`                | `strict` for same-site deployments; `none` only if cross-site  |
+| `DONOR_CONTACT_INTERVAL_DAYS`             |          | `90`                    | Days after a donation before the system may contact a donor    |
 
 The server validates its configuration at startup and refuses to start with a clear message if
 anything is missing or invalid.

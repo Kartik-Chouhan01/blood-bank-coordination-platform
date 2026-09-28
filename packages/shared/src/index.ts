@@ -9,3 +9,5 @@ export * from './api/auth.js';
 export * from './validation/common.js';
 export * from './validation/auth.js';
 export * from './validation/users.js';
+export * from './api/donors.js';
+export * from './validation/donors.js';

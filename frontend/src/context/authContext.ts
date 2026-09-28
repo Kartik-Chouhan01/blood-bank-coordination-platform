@@ -14,6 +14,8 @@ export interface AuthContextValue {
   user: AuthUser | null;
   /** True when the session ended on its own (expiry, suspension, sign-out elsewhere). */
   sessionExpired: boolean;
+  /** True right after the user deliberately signed out on this device. */
+  signedOut: boolean;
   login: (input: LoginInput) => Promise<AuthUser>;
   registerDonor: (input: RegisterDonorInput) => Promise<AuthUser>;
   registerHospital: (input: RegisterHospitalInput) => Promise<AuthUser>;

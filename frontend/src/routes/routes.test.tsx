@@ -106,7 +106,6 @@ describe('sign-in flow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/donor'));
-    expect(await screen.findByText('Hello, Asha')).toBeInTheDocument();
   });
 
   it('shows the server message on wrong credentials', async () => {
@@ -131,5 +130,20 @@ describe('sign-in flow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin/users'));
+  });
+
+  it('does not send the next user to the previous user’s page after a sign-out', async () => {
+    signedInAs('ADMIN');
+    vi.mocked(authApi.login).mockResolvedValue(sessionFor(makeUser('DONOR')));
+    const { router } = renderApp('/admin/users');
+
+    await userEvent.click(await screen.findByRole('button', { name: /sign out/i }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
+
+    await userEvent.type(await screen.findByLabelText(/email/i), 'donor@example.test');
+    await userEvent.type(screen.getByLabelText(/^password/i), 'whatever-123');
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/donor'));
   });
 });

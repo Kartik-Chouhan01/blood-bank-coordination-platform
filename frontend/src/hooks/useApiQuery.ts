@@ -35,6 +35,8 @@ export function useApiQuery<T>(fetcher: () => Promise<T>, deps: unknown[] = []) 
   }, [key]);
 
   const refetch = useCallback(() => setReloadCount((count) => count + 1), []);
+  /** Replaces the data with a fresh server response (e.g. returned by a mutation) without refetching. */
+  const setData = useCallback((data: T) => setResult({ key, data, error: undefined }), [key]);
   const isLoading = result?.key !== key;
 
   return {
@@ -42,5 +44,6 @@ export function useApiQuery<T>(fetcher: () => Promise<T>, deps: unknown[] = []) 
     error: isLoading ? undefined : result?.error,
     isLoading,
     refetch,
+    setData,
   };
 }

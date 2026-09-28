@@ -94,23 +94,23 @@ SystemSetting (typed key/value; defaults live in code)
 
 Envelope: `{ success: true, data, meta? }` or `{ success: false, message, errorCode, details?, requestId? }`.
 
-| Base path             | Highlights                                                                                                     | Access                             |
-| --------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `/api/health`         | DB-aware liveness (503 when degraded)                                                                          | public — **built**                 |
-| `/api/auth`           | register/donor, register/hospital, login, refresh, logout, logout-all, verify-email, forgot/reset-password, me | public / authenticated — **built** |
-| `/api/users`          | list, get, change status (reason required)                                                                     | ADMIN — **built**                  |
-| `/api/donors`         | `me` (get/patch/availability/donations/opportunities); list/get/verify/confirm blood group                     | self / STAFF, ADMIN                |
-| `/api/hospitals`      | `me`; list/get/verify                                                                                          | self / ADMIN                       |
-| `/api/blood-banks`    | CRUD                                                                                                           | ADMIN                              |
-| `/api/donations`      | record donation (+ generates component units), testing result                                                  | STAFF, ADMIN                       |
-| `/api/blood-units`    | filtered list, detail, history, `POST :id/transitions`, expiring                                               | STAFF, ADMIN                       |
-| `/api/requests`       | create, mine, list, detail, edit (PENDING only), review, cancel, confirm-receipt                               | HOSPITAL (own) / STAFF, ADMIN      |
-| `/api/matching`       | inventory candidates, allocate, release, issue, donor search, outreach list                                    | STAFF, ADMIN                       |
-| `/api/donor-outreach` | mine, respond                                                                                                  | DONOR (own)                        |
-| `/api/notifications`  | mine, unread-count, read, read-all                                                                             | owner                              |
-| `/api/dashboard`      | donor / hospital / admin / analytics / public-stats                                                            | role-scoped                        |
-| `/api/audit-logs`     | filtered list                                                                                                  | ADMIN                              |
-| `/api/settings`       | get / patch (reason required, audited)                                                                         | ADMIN                              |
+| Base path             | Highlights                                                                                                                                                         | Access                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| `/api/health`         | DB-aware liveness (503 when degraded)                                                                                                                              | public — **built**                 |
+| `/api/auth`           | register/donor, register/hospital, login, refresh, logout, logout-all, verify-email, forgot/reset-password, me                                                     | public / authenticated — **built** |
+| `/api/users`          | list, get, change status (reason required)                                                                                                                         | ADMIN — **built**                  |
+| `/api/donors`         | `me` (get/patch, availability, notification-preferences); list/get/verification/blood-group — **built**; `me/donations`, `me/opportunities` arrive with Phases 5–7 | self / STAFF, ADMIN                |
+| `/api/hospitals`      | `me`; list/get/verify                                                                                                                                              | self / ADMIN                       |
+| `/api/blood-banks`    | CRUD                                                                                                                                                               | ADMIN                              |
+| `/api/donations`      | record donation (+ generates component units), testing result                                                                                                      | STAFF, ADMIN                       |
+| `/api/blood-units`    | filtered list, detail, history, `POST :id/transitions`, expiring                                                                                                   | STAFF, ADMIN                       |
+| `/api/requests`       | create, mine, list, detail, edit (PENDING only), review, cancel, confirm-receipt                                                                                   | HOSPITAL (own) / STAFF, ADMIN      |
+| `/api/matching`       | inventory candidates, allocate, release, issue, donor search, outreach list                                                                                        | STAFF, ADMIN                       |
+| `/api/donor-outreach` | mine, respond                                                                                                                                                      | DONOR (own)                        |
+| `/api/notifications`  | mine, unread-count, read, read-all                                                                                                                                 | owner                              |
+| `/api/dashboard`      | donor / hospital / admin / analytics / public-stats                                                                                                                | role-scoped                        |
+| `/api/audit-logs`     | filtered list                                                                                                                                                      | ADMIN                              |
+| `/api/settings`       | get / patch (reason required, audited)                                                                                                                             | ADMIN                              |
 
 Self-service always uses `/me` routes, so a client never supplies its own owner id (IDOR by design).
 
@@ -229,8 +229,8 @@ email, phone and date of birth · secrets only from environment, validated at st
 | --- | -------------------------------------------------------------------------------------- | -------- |
 | 1   | Foundation: monorepo, config, DB, logging, errors, health, UI primitives, public pages | **done** |
 | 2   | Authentication & RBAC                                                                  | **done** |
-| 3   | Donors                                                                                 | next     |
-| 4   | Hospitals, blood banks, verification, audit module                                     |          |
+| 3   | Donors                                                                                 | **done** |
+| 4   | Hospitals, blood banks, verification, audit module                                     | next     |
 | 5   | Inventory: donations, units, testing, unit state machine, expiry job                   |          |
 | 6   | Requests lifecycle                                                                     |          |
 | 7   | Matching: compatibility, allocation, donor outreach                                    |          |
@@ -297,3 +297,17 @@ Approved deviations, with rationale. New items are appended as phases land.
 | A19 | Change-password (keeps this device signed in, signs out others) and "sign out of all devices" on an Account page.                                                                | Standard account-security self-service.                                                                                                                      |
 | A20 | Registration is transactional (user + profile + audit) and signs the user in immediately.                                                                                        | No orphan accounts on failure; fewer steps for new users.                                                                                                    |
 | A21 | Shared zod schemas drive **both** API validation and React Hook Form validation.                                                                                                 | One set of rules; the UI shows the same messages the API would.                                                                                              |
+
+### Added during Phase 3
+
+| #   | Change                                                                                                                                                                                                                                | Why                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| A22 | "Away until a date" availability: a temporarily unavailable donor becomes available again automatically. Effective availability is computed on read and in queries (`domain/donors/availability.ts`), so no background job can drift. | Donors don't have to remember to switch back; matching in Phase 7 reuses the same filter.  |
+| A23 | Coordinates are rounded to ≈1 km **in the browser and again on the server**, never returned by any API (donors only see "location saved"), and never written to the audit log.                                                        | Location privacy by construction, not just by UI.                                          |
+| A24 | Staff donor views show **age, not date of birth**, and no phone/email/coordinates.                                                                                                                                                    | Data minimisation: coordination needs group, area and availability — not identity details. |
+| A25 | Donors can correct their self-declared blood group until staff confirm it; afterwards it is locked. Staff corrections that change the declared group require an audited note.                                                         | Fixes honest mistakes early without letting confirmed data drift.                          |
+| A26 | `DONOR_CONTACT_INTERVAL_DAYS` (default 90) drives "the system will not contact you before…". Environment setting for now; moves to admin-editable System Settings in Phase 10.                                                        | The interval is a blood-bank policy, not a hard-coded medical rule.                        |
+| A27 | Donor **profile-completion checklist** with deep links, distinguishing donor actions from staff-only steps.                                                                                                                           | Guides donors to become reachable and well-matched.                                        |
+| A28 | Self-service name/phone for every role (`PATCH /users/me`); changing phone resets `phoneVerified`. Audit stores only which fields changed.                                                                                            | Keeps contact details current without leaking them into logs.                              |
+| A29 | Availability history capped at the latest 50 changes (`$push` + `$slice`).                                                                                                                                                            | Bounded document growth.                                                                   |
+| A30 | Bug fix: a deliberate sign-out no longer remembers the page for "return after sign-in" (the next person signing in on a shared device was sent to the previous user's page).                                                          | Found during end-to-end testing; covered by a regression test.                             |

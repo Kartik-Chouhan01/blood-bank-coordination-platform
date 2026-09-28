@@ -19,3 +19,7 @@ export const updateUserStatus: RequestHandler = async (req, res) => {
     await usersService.updateUserStatus(actorFromRequest(req), req.params.id as string, req.body),
   );
 };
+
+export const updateMe: RequestHandler = async (req, res) => {
+  sendSuccess(res, await usersService.updateOwnAccount(actorFromRequest(req), req.body));
+};

@@ -22,15 +22,16 @@ export interface LoginRedirectState {
 
 /** Signed-in users only; everyone else is sent to /login and returned afterwards. */
 export function RequireAuth({ children }: { children?: ReactNode }) {
-  const { status, sessionExpired } = useAuth();
+  const { status, sessionExpired, signedOut } = useAuth();
   const location = useLocation();
 
   if (status === 'loading') return <FullPageLoading />;
   if (status === 'anonymous') {
-    const state: LoginRedirectState = {
-      from: location.pathname + location.search,
-      ...(sessionExpired && { reason: 'expired' }),
-    };
+    // After an expiry or a deep link we return the user to this page once they sign in; after a
+    // deliberate sign-out we don't, since the next person signing in may be someone else.
+    const state: LoginRedirectState = signedOut
+      ? {}
+      : { from: location.pathname + location.search, ...(sessionExpired && { reason: 'expired' }) };
     return <Navigate to="/login" replace state={state} />;
   }
   return children ?? <Outlet />;

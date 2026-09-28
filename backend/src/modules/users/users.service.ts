@@ -1,6 +1,11 @@
 import type { QueryFilter } from 'mongoose';
 import { Types } from 'mongoose';
-import { ERROR_CODES, type ListUsersQuery, type UpdateUserStatusInput } from '@bbms/shared';
+import {
+  ERROR_CODES,
+  type ListUsersQuery,
+  type UpdateAccountInput,
+  type UpdateUserStatusInput,
+} from '@bbms/shared';
 import { AppError } from '../../utils/AppError.js';
 import type { Actor } from '../../utils/actor.js';
 import { withTransaction } from '../../utils/mongoose.js';
@@ -8,7 +13,7 @@ import { buildPaginationMeta, escapeRegex, pageToSkip } from '../../utils/pagina
 import { recordAudit } from '../audit/audit.service.js';
 import { revokeAllRefreshTokens } from '../auth/session.service.js';
 import { UserModel, type User } from './user.model.js';
-import { toUserSummary } from './user.presenter.js';
+import { toAuthUser, toUserSummary } from './user.presenter.js';
 
 export async function listUsers(query: ListUsersQuery) {
   const filter: QueryFilter<User> = {};
@@ -76,5 +81,32 @@ export async function updateUserStatus(actor: Actor, id: string, input: UpdateUs
       session,
     );
     return toUserSummary(after!);
+  });
+}
+
+/** A user edits their own name/phone. A new phone number must be re-verified. */
+export async function updateOwnAccount(actor: Actor, input: UpdateAccountInput) {
+  return withTransaction(async (session) => {
+    const before = await UserModel.findById(actor.userId).session(session).lean();
+    if (!before) throw AppError.notFound('User');
+
+    const phoneChanged = input.phone !== undefined && input.phone !== before.phone;
+    const after = await UserModel.findOneAndUpdate(
+      { _id: before._id },
+      { $set: { ...input, ...(phoneChanged && { phoneVerified: false }) } },
+      { session, returnDocument: 'after' },
+    ).lean();
+    await recordAudit(
+      actor,
+      {
+        action: 'ACCOUNT_UPDATED',
+        entityType: 'User',
+        entityId: before._id,
+        // Record which fields changed, not the personal data itself.
+        after: { changedFields: Object.keys(input) },
+      },
+      session,
+    );
+    return toAuthUser(after!);
   });
 }

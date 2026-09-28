@@ -20,6 +20,7 @@ import { DetailList, PageHeader } from '@/components/ui/PageHeader';
 import { PasswordField } from '@/components/ui/fields';
 import { applyServerErrors } from '@/utils/formErrors';
 import { toApiClientError } from '@/services/apiError';
+import { AccountDetailsForm } from '../components/AccountDetailsForm';
 
 function ChangePasswordCard() {
   const { applySession } = useAuth();
@@ -114,6 +115,10 @@ export function AccountPage() {
               { label: 'Member since', value: new Date(user.createdAt).toLocaleDateString() },
             ]}
           />
+        </Card>
+        <Card>
+          <CardHeader title="Edit details" />
+          <AccountDetailsForm />
         </Card>
         <ChangePasswordCard />
         <Card className="lg:col-span-2">

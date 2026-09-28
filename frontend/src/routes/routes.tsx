@@ -12,11 +12,13 @@ import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage';
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { AccountPage } from '@/features/account/pages/AccountPage';
-import {
-  AdminHomePage,
-  DonorHomePage,
-  HospitalHomePage,
-} from '@/features/dashboard/pages/HomePages';
+import { AdminHomePage, HospitalHomePage } from '@/features/dashboard/pages/HomePages';
+import { DonorOverviewPage } from '@/features/donor/pages/DonorOverviewPage';
+import { DonorProfilePage } from '@/features/donor/pages/DonorProfilePage';
+import { DonorDonationsPage } from '@/features/donor/pages/DonorDonationsPage';
+import { DonorSettingsPage } from '@/features/donor/pages/DonorSettingsPage';
+import { DonorsPage } from '@/features/admin/pages/DonorsPage';
+import { DonorDetailPage } from '@/features/admin/pages/DonorDetailPage';
 import { UsersPage } from '@/features/admin/pages/UsersPage';
 import { NotFoundPage, RouteErrorPage } from '@/pages/ErrorPages';
 import { GuestOnly, RequireAuth, RequirePermission } from './guards';
@@ -63,7 +65,12 @@ export const routes: RouteObject[] = [
           {
             path: 'donor',
             element: <RequirePermission permission="donor:self" />,
-            children: [{ index: true, element: <DonorHomePage /> }],
+            children: [
+              { index: true, element: <DonorOverviewPage /> },
+              { path: 'profile', element: <DonorProfilePage /> },
+              { path: 'donations', element: <DonorDonationsPage /> },
+              { path: 'settings', element: <DonorSettingsPage /> },
+            ],
           },
           {
             path: 'hospital',
@@ -75,6 +82,14 @@ export const routes: RouteObject[] = [
             element: <RequirePermission permission="inventory:read" />,
             children: [
               { index: true, element: <AdminHomePage /> },
+              {
+                path: 'donors',
+                element: <RequirePermission permission="donors:read" />,
+                children: [
+                  { index: true, element: <DonorsPage /> },
+                  { path: ':id', element: <DonorDetailPage /> },
+                ],
+              },
               {
                 path: 'users',
                 element: <RequirePermission permission="users:read" />,

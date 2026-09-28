@@ -8,25 +8,28 @@ interface AuthState {
   status: AuthStatus;
   user: AuthUser | null;
   sessionExpired: boolean;
+  signedOut: boolean;
 }
 
+const ANONYMOUS: AuthState = {
+  status: 'anonymous',
+  user: null,
+  sessionExpired: false,
+  signedOut: false,
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({
-    status: 'loading',
-    user: null,
-    sessionExpired: false,
-  });
+  const [state, setState] = useState<AuthState>({ ...ANONYMOUS, status: 'loading' });
 
   // Restore the session from the httpOnly refresh cookie on page load.
   useEffect(() => {
     let active = true;
     refreshSession()
       .then((session) => {
-        if (active)
-          setState({ status: 'authenticated', user: session.user, sessionExpired: false });
+        if (active) setState({ ...ANONYMOUS, status: 'authenticated', user: session.user });
       })
       .catch(() => {
-        if (active) setState({ status: 'anonymous', user: null, sessionExpired: false });
+        if (active) setState(ANONYMOUS);
       });
     return () => {
       active = false;
@@ -36,23 +39,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(
     () =>
       onSessionExpired(() =>
-        setState((prev) => ({
-          status: 'anonymous',
-          user: null,
-          sessionExpired: prev.status === 'authenticated',
-        })),
+        setState((prev) => ({ ...ANONYMOUS, sessionExpired: prev.status === 'authenticated' })),
       ),
     [],
   );
 
   const applySession = useCallback((session: AuthSessionResponse) => {
     setAccessToken(session.accessToken);
-    setState({ status: 'authenticated', user: session.user, sessionExpired: false });
+    setState({ ...ANONYMOUS, status: 'authenticated', user: session.user });
   }, []);
 
+  /** A deliberate sign-out: the next person to sign in must not inherit this user's last page. */
   const endSession = useCallback(() => {
     setAccessToken(null);
-    setState({ status: 'anonymous', user: null, sessionExpired: false });
+    setState({ ...ANONYMOUS, signedOut: true });
   }, []);
 
   const value = useMemo<AuthContextValue>(
