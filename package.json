@@ -1,0 +1,36 @@
+{
+  "name": "bbms",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Blood bank management and emergency blood coordination platform",
+  "workspaces": [
+    "packages/shared",
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build:shared": "npm run build -w @bbms/shared",
+    "dev": "npm run build:shared && concurrently -n api,web -c red,blue \"npm run dev -w @bbms/backend\" \"npm run dev -w @bbms/frontend\"",
+    "dev:db": "npm run db:dev -w @bbms/backend",
+    "build": "npm run build:shared && npm run build -w @bbms/backend && npm run build -w @bbms/frontend",
+    "test": "npm run build:shared && npm run test -w @bbms/shared && npm run test -w @bbms/backend && npm run test -w @bbms/frontend",
+    "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^10.0.5",
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.2"
+  }
+}
