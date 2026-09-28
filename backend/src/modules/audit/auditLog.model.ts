@@ -1,24 +1,14 @@
 import { Schema, model, type Types } from 'mongoose';
-import { ROLES, type Role } from '@bbms/shared';
+import {
+  AUDIT_ACTIONS,
+  AUDIT_ENTITY_TYPES,
+  ROLES,
+  type AuditAction,
+  type AuditEntityType,
+  type Role,
+} from '@bbms/shared';
 
-export const AUDIT_ACTIONS = [
-  'USER_REGISTERED',
-  'USER_CREATED',
-  'USER_STATUS_CHANGED',
-  'EMAIL_VERIFIED',
-  'PASSWORD_CHANGED',
-  'PASSWORD_RESET',
-  'SESSIONS_REVOKED',
-  'REFRESH_TOKEN_REUSE_DETECTED',
-  'ACCOUNT_UPDATED',
-  'DONOR_PROFILE_UPDATED',
-  'DONOR_VERIFICATION_CHANGED',
-  'DONOR_BLOOD_GROUP_CONFIRMED',
-] as const;
-export type AuditAction = (typeof AUDIT_ACTIONS)[number];
-
-export const AUDIT_ENTITY_TYPES = ['User', 'DonorProfile', 'Hospital'] as const;
-export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
+export { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, type AuditAction, type AuditEntityType };
 
 /** Append-only: no update or delete path exists anywhere in the application. */
 export interface AuditLog {

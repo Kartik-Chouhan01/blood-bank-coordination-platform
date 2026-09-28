@@ -15,6 +15,12 @@ export interface HospitalProfileSummary {
   verificationStatus: VerificationStatus;
 }
 
+export interface StaffProfileSummary {
+  kind: 'STAFF';
+  bloodBankId: string;
+  bloodBankName: string;
+}
+
 /** The signed-in user as the client sees it. Never contains secrets or other people's data. */
 export interface AuthUser {
   id: string;
@@ -25,7 +31,7 @@ export interface AuthUser {
   accountStatus: AccountStatus;
   emailVerified: boolean;
   createdAt: string;
-  profile: DonorProfileSummary | HospitalProfileSummary | null;
+  profile: DonorProfileSummary | HospitalProfileSummary | StaffProfileSummary | null;
 }
 
 export interface AuthSessionResponse {
@@ -46,4 +52,5 @@ export interface UserSummary {
   emailVerified: boolean;
   lastLoginAt: string | null;
   createdAt: string;
+  bloodBank: { id: string; name: string } | null;
 }

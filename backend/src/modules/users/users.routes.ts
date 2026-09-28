@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   listUsersQuerySchema,
   objectIdSchema,
+  inviteStaffSchema,
   updateAccountSchema,
   updateUserStatusSchema,
 } from '@bbms/shared';
@@ -40,4 +41,16 @@ usersRouter.patch(
   authorize('users:manage'),
   validate({ params: idParams, body: updateUserStatusSchema }),
   controller.updateUserStatus,
+);
+usersRouter.post(
+  '/staff',
+  authorize('users:manage'),
+  validate({ body: inviteStaffSchema }),
+  controller.inviteStaff,
+);
+usersRouter.post(
+  '/:id/resend-invite',
+  authorize('users:manage'),
+  validate({ params: idParams }),
+  controller.resendInvite,
 );

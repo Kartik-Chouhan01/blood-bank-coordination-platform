@@ -1,6 +1,6 @@
 import { Schema, model, type Types } from 'mongoose';
 
-export const TOKEN_PURPOSES = ['EMAIL_VERIFY', 'PASSWORD_RESET'] as const;
+export const TOKEN_PURPOSES = ['EMAIL_VERIFY', 'PASSWORD_RESET', 'ACCOUNT_INVITE'] as const;
 export type TokenPurpose = (typeof TOKEN_PURPOSES)[number];
 
 export interface VerificationToken {

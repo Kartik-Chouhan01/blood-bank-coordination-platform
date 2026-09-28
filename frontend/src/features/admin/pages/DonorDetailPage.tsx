@@ -18,6 +18,7 @@ import { StatusBadge } from '@/components/domain/StatusBadge';
 import { toApiClientError } from '@/services/apiError';
 import { formatDate, formatDateTime } from '@/utils/format';
 import { donorStaffApi } from '@/features/donor/api';
+import { EntityHistory } from '@/features/audit/components/EntityHistory';
 
 type Notice = { tone: 'success' | 'error'; text: string } | undefined;
 type VerificationAction = 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
@@ -273,6 +274,11 @@ export function DonorDetailPage() {
           </ul>
         </Card>
       </div>
+      <EntityHistory
+        entityType="DonorProfile"
+        entityId={donor.id}
+        refreshKey={`${donor.verificationStatus}-${donor.bloodGroup}-${donor.bloodGroupConfirmed}`}
+      />
       <MedicalDisclaimer />
 
       <ConfirmationDialog

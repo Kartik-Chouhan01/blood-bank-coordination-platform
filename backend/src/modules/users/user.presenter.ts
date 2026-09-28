@@ -1,6 +1,7 @@
 import type { AuthUser, UserSummary } from '@bbms/shared';
 import { DonorProfileModel } from '../donors/donorProfile.model.js';
 import { HospitalModel } from '../hospitals/hospital.model.js';
+import { BloodBankModel } from '../bloodBanks/bloodBank.model.js';
 import type { User } from './user.model.js';
 
 type UserFields = Pick<
@@ -14,9 +15,10 @@ type UserFields = Pick<
   | 'emailVerified'
   | 'lastLoginAt'
   | 'createdAt'
+  | 'bloodBankId'
 >;
 
-export function toUserSummary(user: UserFields): UserSummary {
+export function toUserSummary(user: UserFields, bloodBankName?: string | undefined): UserSummary {
   return {
     id: user._id.toString(),
     name: user.name,
@@ -27,7 +29,23 @@ export function toUserSummary(user: UserFields): UserSummary {
     emailVerified: user.emailVerified,
     lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
+    bloodBank:
+      user.bloodBankId && bloodBankName
+        ? { id: user.bloodBankId.toString(), name: bloodBankName }
+        : null,
   };
+}
+
+/** Summaries for many users, resolving blood-bank names in one query. */
+export async function toUserSummaries(users: UserFields[]): Promise<UserSummary[]> {
+  const bankIds = users.flatMap((user) => (user.bloodBankId ? [user.bloodBankId] : []));
+  const banks = bankIds.length
+    ? await BloodBankModel.find({ _id: { $in: bankIds } })
+        .select('name')
+        .lean()
+    : [];
+  const names = new Map(banks.map((bank) => [bank._id.toString(), bank.name]));
+  return users.map((user) => toUserSummary(user, names.get(user.bloodBankId?.toString() ?? '')));
 }
 
 /** The signed-in user's own view, including a summary of their role-specific profile. */
@@ -71,6 +89,16 @@ export async function toAuthUser(user: UserFields): Promise<AuthUser> {
         verificationStatus: hospital.verificationStatus,
       },
     };
+  }
+
+  if (user.bloodBankId) {
+    const bank = await BloodBankModel.findById(user.bloodBankId).select('name').lean();
+    if (bank) {
+      return {
+        ...base,
+        profile: { kind: 'STAFF', bloodBankId: bank._id.toString(), bloodBankName: bank.name },
+      };
+    }
   }
 
   return { ...base, profile: null };

@@ -78,3 +78,7 @@ export const resetPassword: RequestHandler = async (req, res) => {
 export const changePassword: RequestHandler = async (req, res) => {
   sendSession(res, await authService.changePassword(actorFromRequest(req), req.body));
 };
+
+export const acceptInvite: RequestHandler = async (req, res) => {
+  sendSession(res, await authService.acceptInvite(req.body, requestContext(req)));
+};

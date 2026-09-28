@@ -12,7 +12,14 @@ import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage';
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { AccountPage } from '@/features/account/pages/AccountPage';
-import { AdminHomePage, HospitalHomePage } from '@/features/dashboard/pages/HomePages';
+import { AdminHomePage } from '@/features/dashboard/pages/HomePages';
+import { HospitalOverviewPage } from '@/features/hospital/pages/HospitalOverviewPage';
+import { HospitalProfilePage } from '@/features/hospital/pages/HospitalProfilePage';
+import { HospitalsPage } from '@/features/admin/pages/HospitalsPage';
+import { HospitalDetailPage } from '@/features/admin/pages/HospitalDetailPage';
+import { BloodBanksPage } from '@/features/admin/pages/BloodBanksPage';
+import { AuditLogPage } from '@/features/admin/pages/AuditLogPage';
+import { AcceptInvitePage } from '@/features/auth/pages/AcceptInvitePage';
 import { DonorOverviewPage } from '@/features/donor/pages/DonorOverviewPage';
 import { DonorProfilePage } from '@/features/donor/pages/DonorProfilePage';
 import { DonorDonationsPage } from '@/features/donor/pages/DonorDonationsPage';
@@ -52,6 +59,7 @@ export const routes: RouteObject[] = [
           // Reachable whether or not the user is signed in (links arrive by email).
           { path: 'verify-email', element: <VerifyEmailPage /> },
           { path: 'reset-password', element: <ResetPasswordPage /> },
+          { path: 'accept-invite', element: <AcceptInvitePage /> },
         ],
       },
       {
@@ -75,7 +83,10 @@ export const routes: RouteObject[] = [
           {
             path: 'hospital',
             element: <RequirePermission permission="hospital:self" />,
-            children: [{ index: true, element: <HospitalHomePage /> }],
+            children: [
+              { index: true, element: <HospitalOverviewPage /> },
+              { path: 'profile', element: <HospitalProfilePage /> },
+            ],
           },
           {
             path: 'admin',
@@ -89,6 +100,24 @@ export const routes: RouteObject[] = [
                   { index: true, element: <DonorsPage /> },
                   { path: ':id', element: <DonorDetailPage /> },
                 ],
+              },
+              {
+                path: 'hospitals',
+                element: <RequirePermission permission="hospitals:read" />,
+                children: [
+                  { index: true, element: <HospitalsPage /> },
+                  { path: ':id', element: <HospitalDetailPage /> },
+                ],
+              },
+              {
+                path: 'blood-banks',
+                element: <RequirePermission permission="bloodBanks:read" />,
+                children: [{ index: true, element: <BloodBanksPage /> }],
+              },
+              {
+                path: 'audit-logs',
+                element: <RequirePermission permission="audit:read" />,
+                children: [{ index: true, element: <AuditLogPage /> }],
               },
               {
                 path: 'users',

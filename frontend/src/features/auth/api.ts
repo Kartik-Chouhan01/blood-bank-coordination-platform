@@ -1,4 +1,5 @@
 import type {
+  AcceptInviteInput,
   ApiSuccess,
   AuthSessionResponse,
   AuthUser,
@@ -36,6 +37,8 @@ export const authApi = {
   resendVerification: () => apiPost<null>('/auth/resend-verification'),
   forgotPassword: (input: ForgotPasswordInput) => sessionPost<null>('/auth/forgot-password', input),
   resetPassword: (input: ResetPasswordInput) => sessionPost<null>('/auth/reset-password', input),
+  acceptInvite: (input: AcceptInviteInput) =>
+    sessionPost<AuthSessionResponse>('/auth/accept-invite', input),
   changePassword: (input: ChangePasswordInput) =>
     apiPost<AuthSessionResponse>('/auth/change-password', input),
 };

@@ -3,6 +3,7 @@ import {
   ERROR_CODES,
   type AuthSessionResponse,
   type ChangePasswordInput,
+  type AcceptInviteInput,
   type LoginInput,
   type RegisterDonorInput,
   type RegisterHospitalInput,
@@ -18,6 +19,10 @@ import { DonorProfileModel, cityKeyOf } from '../donors/donorProfile.model.js';
 import { HospitalModel } from '../hospitals/hospital.model.js';
 import { UserModel, type User } from '../users/user.model.js';
 import { toAuthUser } from '../users/user.presenter.js';
+import {
+  acceptInvite as activateInvitedAccount,
+  resendInvite,
+} from '../users/staffInvites.service.js';
 import { signAccessToken } from './accessToken.js';
 import {
   EMAIL_VERIFY_TTL_HOURS,
@@ -218,6 +223,16 @@ export async function login(input: LoginInput, context: RequestContext): Promise
   return buildSession(user, refresh);
 }
 
+/** Activates an invited staff account and signs the invitee straight in. */
+export async function acceptInvite(
+  input: AcceptInviteInput,
+  context: RequestContext,
+): Promise<SessionResult> {
+  const user = await activateInvitedAccount(input, context);
+  const refresh = await issueRefreshToken(user._id, context.userAgent);
+  return buildSession(user, refresh);
+}
+
 export async function refreshSession(
   rawToken: string | undefined,
   context: RequestContext,
@@ -282,10 +297,20 @@ export async function resendVerification(actor: Actor): Promise<void> {
 
 // ─── Passwords ───────────────────────────────────────────────────────────────
 
-/** Always succeeds from the caller's view, so it cannot be used to discover registered emails. */
+/**
+ * Always succeeds from the caller's view, so it cannot be used to discover registered emails.
+ * An invited account that never activated gets a fresh invitation instead of a reset link.
+ */
 export async function forgotPassword(email: string): Promise<void> {
-  const user = await UserModel.findOne({ email, accountStatus: 'ACTIVE' }).lean();
+  const user = await UserModel.findOne({
+    email,
+    accountStatus: { $in: ['ACTIVE', 'PENDING'] },
+  }).lean();
   if (!user) return;
+  if (user.accountStatus === 'PENDING') {
+    await resendInvite(user._id.toString());
+    return;
+  }
   const token = await issueVerificationToken(
     user._id,
     'PASSWORD_RESET',

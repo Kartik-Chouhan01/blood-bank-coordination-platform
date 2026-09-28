@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { MailPlus, Search, UserPlus } from 'lucide-react';
 import {
   ACCOUNT_STATUSES,
   ROLE_LABELS,
@@ -23,6 +23,8 @@ import { Select } from '@/components/ui/fields';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/States';
 import { toApiClientError } from '@/services/apiError';
 import { usersApi } from '../api';
+import { InviteStaffDialog } from '../components/InviteStaffDialog';
+import { staffApi } from '@/features/organisations/api';
 
 const STATUS_TONE: Record<AccountStatus, BadgeTone> = {
   ACTIVE: 'success',
@@ -31,7 +33,12 @@ const STATUS_TONE: Record<AccountStatus, BadgeTone> = {
   DEACTIVATED: 'muted',
 };
 
-const titleCase = (value: string) => value.charAt(0) + value.slice(1).toLowerCase();
+const STATUS_LABEL: Record<AccountStatus, string> = {
+  ACTIVE: 'Active',
+  PENDING: 'Invitation pending',
+  SUSPENDED: 'Suspended',
+  DEACTIVATED: 'Deactivated',
+};
 
 interface PendingChange {
   user: UserSummary;
@@ -48,6 +55,7 @@ export function UsersPage() {
   const [pending, setPending] = useState<PendingChange | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; text: string }>();
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const query = {
     page,
@@ -83,11 +91,28 @@ export function UsersPage() {
     }
   };
 
+  const resend = async (user: UserSummary) => {
+    try {
+      await staffApi.resendInvite(user.id);
+      setNotice({ tone: 'success', text: `A new invitation was sent to ${user.email}.` });
+    } catch (err) {
+      setNotice({ tone: 'error', text: toApiClientError(err).message });
+    }
+  };
+
   return (
     <>
       <PageHeader
         title="Users"
         description="All accounts on the platform. Status changes are audited."
+        actions={
+          <Button
+            icon={<UserPlus className="size-4" aria-hidden />}
+            onClick={() => setInviteOpen(true)}
+          >
+            Invite staff
+          </Button>
+        }
       />
 
       {notice && <Alert tone={notice.tone}>{notice.text}</Alert>}
@@ -128,7 +153,7 @@ export function UsersPage() {
             <option value="">All statuses</option>
             {ACCOUNT_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {titleCase(s)}
+                {STATUS_LABEL[s]}
               </option>
             ))}
           </Select>
@@ -169,10 +194,15 @@ export function UsersPage() {
                         <p className="font-medium text-slate-900">{u.name}</p>
                         <p className="text-xs text-slate-500">{u.email}</p>
                       </td>
-                      <td className="px-5 py-3 text-slate-700">{ROLE_LABELS[u.role]}</td>
+                      <td className="px-5 py-3 text-slate-700">
+                        {ROLE_LABELS[u.role]}
+                        {u.bloodBank && (
+                          <p className="text-xs text-slate-500">{u.bloodBank.name}</p>
+                        )}
+                      </td>
                       <td className="px-5 py-3">
                         <Badge tone={STATUS_TONE[u.accountStatus]}>
-                          {titleCase(u.accountStatus)}
+                          {STATUS_LABEL[u.accountStatus]}
                         </Badge>
                       </td>
                       <td className="px-5 py-3 text-slate-600">
@@ -180,7 +210,16 @@ export function UsersPage() {
                       </td>
                       <td className="px-5 py-3 text-right">
                         {u.id !== currentUser?.id &&
-                          (u.accountStatus === 'ACTIVE' ? (
+                          (u.accountStatus === 'PENDING' ? (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              icon={<MailPlus className="size-4" aria-hidden />}
+                              onClick={() => void resend(u)}
+                            >
+                              Resend invite
+                            </Button>
+                          ) : u.accountStatus === 'ACTIVE' ? (
                             <Button
                               size="sm"
                               variant="secondary"
@@ -207,6 +246,16 @@ export function UsersPage() {
           </>
         )}
       </Card>
+
+      <InviteStaffDialog
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        onInvited={(user) => {
+          setInviteOpen(false);
+          setNotice({ tone: 'success', text: `Invitation sent to ${user.email}.` });
+          refetch();
+        }}
+      />
 
       <ConfirmationDialog
         open={!!pending}

@@ -1,5 +1,10 @@
 import { Schema, model, type HydratedDocument, type Types } from 'mongoose';
-import { VERIFICATION_STATUSES, type VerificationStatus } from '@bbms/shared';
+import {
+  OPERATING_STATUSES,
+  VERIFICATION_STATUSES,
+  type OperatingStatus,
+  type VerificationStatus,
+} from '@bbms/shared';
 import { baseSchemaOptions } from '../../utils/mongoose.js';
 
 export interface Hospital {
@@ -13,8 +18,13 @@ export interface Hospital {
   verificationStatus: VerificationStatus;
   verifiedBy: Types.ObjectId | null;
   verifiedAt: Date | null;
-  rejectionReason: string | null;
-  operatingStatus: 'OPERATIONAL' | 'CLOSED';
+  /** Admin's reason for the current status (rejected / suspended). */
+  statusReason: string | null;
+  /** Set when a rejected hospital edits its details and goes back to review. */
+  resubmittedAt: Date | null;
+  operatingStatus: OperatingStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export type HospitalDocument = HydratedDocument<Hospital>;
@@ -43,8 +53,9 @@ const hospitalSchema = new Schema<Hospital>(
     verificationStatus: { type: String, enum: VERIFICATION_STATUSES, default: 'PENDING' },
     verifiedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     verifiedAt: { type: Date, default: null },
-    rejectionReason: { type: String, default: null, maxlength: 500 },
-    operatingStatus: { type: String, enum: ['OPERATIONAL', 'CLOSED'], default: 'OPERATIONAL' },
+    statusReason: { type: String, default: null, maxlength: 500 },
+    resubmittedAt: { type: Date, default: null },
+    operatingStatus: { type: String, enum: OPERATING_STATUSES, default: 'OPERATIONAL' },
   },
   baseSchemaOptions<Hospital>(),
 );

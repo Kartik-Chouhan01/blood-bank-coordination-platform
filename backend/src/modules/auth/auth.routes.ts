@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  acceptInviteSchema,
   changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
@@ -62,4 +63,10 @@ authRouter.post(
   authenticate,
   validate({ body: changePasswordSchema }),
   controller.changePassword,
+);
+authRouter.post(
+  '/accept-invite',
+  authLimiter,
+  validate({ body: acceptInviteSchema }),
+  controller.acceptInvite,
 );

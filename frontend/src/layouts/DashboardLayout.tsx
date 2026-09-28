@@ -3,6 +3,9 @@ import { NavLink, Outlet, useNavigate } from 'react-router';
 import { hasPermission, ROLE_LABELS, type Permission } from '@bbms/shared';
 import {
   Bell,
+  Building2,
+  Hospital,
+  ScrollText,
   Droplets,
   HeartHandshake,
   LayoutDashboard,
@@ -40,8 +43,22 @@ function navItemsFor(homePath: string): NavItem[] {
     { to: '/donor/profile', label: 'My profile', icon: UserRound, permission: 'donor:self' },
     { to: '/donor/donations', label: 'Donations', icon: Droplets, permission: 'donor:self' },
     { to: '/donor/settings', label: 'Settings', icon: Bell, permission: 'donor:self' },
+    {
+      to: '/hospital/profile',
+      label: 'Hospital profile',
+      icon: Hospital,
+      permission: 'hospital:self',
+    },
     { to: '/admin/donors', label: 'Donors', icon: HeartHandshake, permission: 'donors:read' },
+    { to: '/admin/hospitals', label: 'Hospitals', icon: Hospital, permission: 'hospitals:read' },
+    {
+      to: '/admin/blood-banks',
+      label: 'Blood banks',
+      icon: Building2,
+      permission: 'bloodBanks:read',
+    },
     { to: '/admin/users', label: 'Users', icon: Users, permission: 'users:read' },
+    { to: '/admin/audit-logs', label: 'Audit log', icon: ScrollText, permission: 'audit:read' },
     { to: '/account', label: 'Account', icon: UserCog, permission: 'account:self' },
   ];
 }
@@ -120,7 +137,10 @@ export function DashboardLayout() {
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-slate-900">{user.name}</p>
-              <p className="text-xs text-slate-500">{ROLE_LABELS[user.role]}</p>
+              <p className="text-xs text-slate-500">
+                {ROLE_LABELS[user.role]}
+                {user.profile?.kind === 'STAFF' && ` · ${user.profile.bloodBankName}`}
+              </p>
             </div>
             <button
               type="button"

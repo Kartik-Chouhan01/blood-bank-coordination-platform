@@ -15,6 +15,8 @@ export const PERMISSIONS = {
   'donors:verify': ['BLOOD_BANK_STAFF', 'ADMIN'],
   'hospitals:read': ['BLOOD_BANK_STAFF', 'ADMIN'],
   'hospitals:verify': ['ADMIN'],
+  'bloodBanks:read': ['BLOOD_BANK_STAFF', 'ADMIN'],
+  'bloodBanks:manage': ['ADMIN'],
   'inventory:read': ['BLOOD_BANK_STAFF', 'ADMIN'],
   'inventory:manage': ['BLOOD_BANK_STAFF', 'ADMIN'],
   'requests:create': ['HOSPITAL'],

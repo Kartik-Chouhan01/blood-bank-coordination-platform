@@ -13,7 +13,7 @@ import { buildPaginationMeta, escapeRegex, pageToSkip } from '../../utils/pagina
 import { recordAudit } from '../audit/audit.service.js';
 import { revokeAllRefreshTokens } from '../auth/session.service.js';
 import { UserModel, type User } from './user.model.js';
-import { toAuthUser, toUserSummary } from './user.presenter.js';
+import { toAuthUser, toUserSummaries, toUserSummary } from './user.presenter.js';
 
 export async function listUsers(query: ListUsersQuery) {
   const filter: QueryFilter<User> = {};
@@ -33,13 +33,14 @@ export async function listUsers(query: ListUsersQuery) {
     UserModel.countDocuments(filter),
   ]);
 
-  return { items: users.map(toUserSummary), meta: buildPaginationMeta(query, total) };
+  return { items: await toUserSummaries(users), meta: buildPaginationMeta(query, total) };
 }
 
 export async function getUser(id: string) {
   const user = await UserModel.findById(id).lean();
   if (!user) throw AppError.notFound('User');
-  return toUserSummary(user);
+  const [summary] = await toUserSummaries([user]);
+  return summary!;
 }
 
 /**
@@ -59,6 +60,12 @@ export async function updateUserStatus(actor: Actor, id: string, input: UpdateUs
     const before = await UserModel.findById(targetId).session(session).lean();
     if (!before) throw AppError.notFound('User');
     if (before.accountStatus === input.status) return toUserSummary(before);
+    if (before.accountStatus === 'PENDING' && input.status === 'ACTIVE') {
+      throw AppError.conflict(
+        'This person has not accepted their invitation yet. Resend the invitation instead.',
+        ERROR_CODES.CONFLICT,
+      );
+    }
 
     const revoke = input.status !== 'ACTIVE';
     const after = await UserModel.findOneAndUpdate(
@@ -80,7 +87,8 @@ export async function updateUserStatus(actor: Actor, id: string, input: UpdateUs
       },
       session,
     );
-    return toUserSummary(after!);
+    const [summary] = await toUserSummaries([after!]);
+    return summary!;
   });
 }
 

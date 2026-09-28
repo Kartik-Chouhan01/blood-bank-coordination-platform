@@ -79,9 +79,6 @@ describe('route guards', () => {
     signedInAs('HOSPITAL');
     const { router } = renderApp('/login');
     await waitFor(() => expect(router.state.location.pathname).toBe('/hospital'));
-    expect(
-      await screen.findByText(/awaiting verification|reviewing your hospital/i),
-    ).toBeInTheDocument();
   });
 });
 

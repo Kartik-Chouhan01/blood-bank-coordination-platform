@@ -16,8 +16,10 @@ coordinating hospitals, blood banks, administrators and potential donors.
 | ----- | ----------------------------------------------------------------------------------------------------------- | ------- |
 | 1     | Foundation — monorepo, config, database, logging, error handling, health check, UI primitives, public pages | ✅ Done |
 | 2     | Authentication & role-based access control, admin user management                                           | ✅ Done |
-| 3     | Donor profiles, availability, donation history                                                              | ⏭ Next  |
-| 4–11  | Hospitals, inventory, requests, matching, notifications, analytics, security review, testing & deployment   | Planned |
+| 3     | Donor profiles, availability, notification preferences; staff donor directory & verification                | ✅ Done |
+| 4     | Hospitals & verification, blood banks, staff invitations, audit log viewer                                  | ✅ Done |
+| 5     | Blood inventory: donations, units, testing, unit lifecycle, expiry                                          | ⏭ Next  |
+| 6–11  | Requests, matching, notifications, analytics, security review, testing & deployment                         | Planned |
 
 The full design — entities, APIs, state machines, matching algorithms and **every deliberate change
 from the original specification** — is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -82,7 +84,10 @@ line (the password is generated and printed once, or taken from `ADMIN_PASSWORD`
 npm run create-admin -w @bbms/backend -- --email admin@example.org --name "Site Admin"
 ```
 
-Donors and hospitals register themselves at http://localhost:5173/register. In development,
+After signing in as that administrator, add a blood bank (**Blood banks**) and invite staff
+(**Users → Invite staff**); invitees receive a link to choose their own password. Donors and
+hospitals register themselves at http://localhost:5173/register, and administrators verify
+hospitals under **Hospitals**. In development,
 verification and password-reset emails are printed to the API terminal — open the link from there.
 
 ## Scripts (run from the repository root)

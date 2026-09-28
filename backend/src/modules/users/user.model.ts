@@ -14,6 +14,8 @@ export interface User {
   phoneVerified: boolean;
   /** Incremented to invalidate every access token issued before (logout-all, suspension, reset). */
   tokenVersion: number;
+  /** Blood bank a BLOOD_BANK_STAFF member works for (optional for admins). */
+  bloodBankId: Types.ObjectId | null;
   consentAcceptedAt: Date | null;
   lastLoginAt: Date | null;
   createdAt: Date;
@@ -33,6 +35,7 @@ const userSchema = new Schema<User>(
     emailVerified: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
     tokenVersion: { type: Number, default: 0 },
+    bloodBankId: { type: Schema.Types.ObjectId, ref: 'BloodBank', default: null },
     consentAcceptedAt: { type: Date, default: null },
     lastLoginAt: { type: Date, default: null },
   },
@@ -41,5 +44,6 @@ const userSchema = new Schema<User>(
 
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ role: 1, accountStatus: 1, createdAt: -1 });
+userSchema.index({ bloodBankId: 1 }, { sparse: true });
 
 export const UserModel = model<User>('User', userSchema);
