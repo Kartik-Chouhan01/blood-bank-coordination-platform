@@ -9,6 +9,8 @@ export function useTestDatabase() {
     const uri = new URL(inject('mongoUri'));
     uri.pathname = `/test_${randomUUID().slice(0, 8)}`;
     await connectDatabase(uri.toString());
+    // Build indexes up front so unique constraints are enforced from the first test.
+    await Promise.all(Object.values(mongoose.models).map((model) => model.init()));
   });
 
   beforeEach(async () => {

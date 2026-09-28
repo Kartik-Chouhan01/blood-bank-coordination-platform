@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
-import { Droplet, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { APP_NAME } from '@/constants/app';
+import { homePathFor } from '@/constants/navigation';
+import { Logo } from '@/components/domain/Logo';
+import { useAuth } from '@/hooks/useAuth';
 import { ButtonLink } from '@/components/ui/Button';
 import { SystemStatus } from '@/features/system/components/SystemStatus';
 import { cn } from '@/utils/cn';
@@ -12,19 +15,15 @@ const NAV_LINKS = [
   { to: '/help', label: 'Help' },
 ];
 
-function Logo() {
-  return (
-    <Link to="/" className="flex items-center gap-2 font-semibold text-slate-900">
-      <span className="rounded-lg bg-brand-600 p-1.5 text-white">
-        <Droplet className="size-4" aria-hidden fill="currentColor" />
-      </span>
-      {APP_NAME}
-    </Link>
-  );
-}
-
 export function PublicLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user } = useAuth();
+  const accountLinks = user
+    ? [{ to: homePathFor(user.role), label: 'My dashboard' }]
+    : [
+        { to: '/login', label: 'Sign in' },
+        { to: '/register', label: 'Get started' },
+      ];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -55,10 +54,16 @@ export function PublicLayout() {
             ))}
           </nav>
           <div className="hidden items-center gap-2 md:flex">
-            <ButtonLink to="/login" variant="ghost">
-              Sign in
-            </ButtonLink>
-            <ButtonLink to="/register">Get started</ButtonLink>
+            {user ? (
+              <ButtonLink to={homePathFor(user.role)}>My dashboard</ButtonLink>
+            ) : (
+              <>
+                <ButtonLink to="/login" variant="ghost">
+                  Sign in
+                </ButtonLink>
+                <ButtonLink to="/register">Get started</ButtonLink>
+              </>
+            )}
           </div>
           <button
             type="button"
@@ -81,11 +86,7 @@ export function PublicLayout() {
             aria-label="Mobile"
             className="border-t border-slate-100 px-4 py-3 md:hidden"
           >
-            {[
-              ...NAV_LINKS,
-              { to: '/login', label: 'Sign in' },
-              { to: '/register', label: 'Get started' },
-            ].map((link) => (
+            {[...NAV_LINKS, ...accountLinks].map((link) => (
               <Link
                 key={link.to}
                 to={link.to}

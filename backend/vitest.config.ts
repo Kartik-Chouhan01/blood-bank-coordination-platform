@@ -15,6 +15,9 @@ export default defineConfig({
       // Replaced per test file with the in-memory replica set URI (see helpers/testDb.ts).
       MONGODB_URI: 'mongodb://127.0.0.1:1/unused',
       CORS_ORIGINS: 'http://localhost:5173',
+      JWT_ACCESS_SECRET: 'test-only-access-secret-at-least-32-characters',
+      BCRYPT_ROUNDS: '4',
+      AUTH_RATE_LIMIT_MAX: '10000',
     },
   },
 });

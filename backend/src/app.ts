@@ -1,9 +1,11 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { createRateLimiter } from './middleware/rateLimits.js';
+import { rejectOperatorKeys } from './middleware/rejectOperatorKeys.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { apiRouter } from './routes.js';
 
@@ -25,6 +27,8 @@ export function createApp() {
     }),
   );
   app.use(express.json({ limit: '100kb' }));
+  app.use(cookieParser());
+  app.use(rejectOperatorKeys);
 
   app.use(
     '/api',

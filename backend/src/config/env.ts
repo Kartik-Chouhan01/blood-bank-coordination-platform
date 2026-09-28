@@ -21,7 +21,21 @@ const envSchema = z.object({
     .positive()
     .default(15 * 60 * 1000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(1000),
+  /** Stricter per-IP limit for login, registration and password-reset endpoints. */
+  AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
   APP_VERSION: z.string().default(process.env.npm_package_version ?? '0.1.0'),
+
+  /** Public URL of the web app, used to build links in emails. */
+  APP_URL: z.url().default('http://localhost:5173'),
+  JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
+  JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
+  BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
+  /**
+   * `strict` works when the web app and API share a site (same domain, or a proxy/rewrite).
+   * Use `none` only for cross-site deployments; the refresh endpoint also checks the Origin header.
+   */
+  COOKIE_SAMESITE: z.enum(['strict', 'lax', 'none']).default('strict'),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -40,10 +54,18 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
       result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`),
     );
   }
-  if (result.data.NODE_ENV === 'production' && result.data.CORS_ORIGINS.includes('*')) {
-    throw new InvalidEnvironmentError([
-      'CORS_ORIGINS: wildcard origin is not allowed in production',
-    ]);
+  if (result.data.NODE_ENV === 'production') {
+    const problems: string[] = [];
+    if (result.data.CORS_ORIGINS.includes('*')) {
+      problems.push('CORS_ORIGINS: wildcard origin is not allowed in production');
+    }
+    if (/change-me|example|secret/i.test(result.data.JWT_ACCESS_SECRET)) {
+      problems.push('JWT_ACCESS_SECRET: replace the placeholder with a random value');
+    }
+    if (result.data.BCRYPT_ROUNDS < 10) {
+      problems.push('BCRYPT_ROUNDS: must be at least 10 in production');
+    }
+    if (problems.length) throw new InvalidEnvironmentError(problems);
   }
   return result.data;
 }

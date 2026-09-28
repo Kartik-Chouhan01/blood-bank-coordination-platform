@@ -1,10 +1,9 @@
 import mongoose from 'mongoose';
 import { logger } from './logger.js';
 
-// Reject unknown query fields and strip `$`-operators from user-supplied filter objects
-// (NoSQL injection guard). Code that genuinely needs operators uses mongoose.trusted().
+// Ignore filter fields that are not in the schema. NoSQL-operator injection is blocked earlier,
+// at the HTTP boundary (middleware/rejectOperatorKeys) plus zod's strict primitive types.
 mongoose.set('strictQuery', true);
-mongoose.set('sanitizeFilter', true);
 
 export async function connectDatabase(uri: string): Promise<typeof mongoose> {
   const connection = await mongoose.connect(uri, { serverSelectionTimeoutMS: 10_000 });

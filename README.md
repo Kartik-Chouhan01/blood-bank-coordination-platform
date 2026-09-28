@@ -12,11 +12,12 @@ coordinating hospitals, blood banks, administrators and potential donors.
 
 ## Status
 
-| Phase | Scope                                                                                                             | Status  |
-| ----- | ----------------------------------------------------------------------------------------------------------------- | ------- |
-| 1     | Foundation — monorepo, config, database, logging, error handling, health check, UI primitives, public pages       | ✅ Done |
-| 2     | Authentication & role-based access control                                                                        | ⏭ Next  |
-| 3–11  | Donors, hospitals, inventory, requests, matching, notifications, analytics, security review, testing & deployment | Planned |
+| Phase | Scope                                                                                                       | Status  |
+| ----- | ----------------------------------------------------------------------------------------------------------- | ------- |
+| 1     | Foundation — monorepo, config, database, logging, error handling, health check, UI primitives, public pages | ✅ Done |
+| 2     | Authentication & role-based access control, admin user management                                           | ✅ Done |
+| 3     | Donor profiles, availability, donation history                                                              | ⏭ Next  |
+| 4–11  | Hospitals, inventory, requests, matching, notifications, analytics, security review, testing & deployment   | Planned |
 
 The full design — entities, APIs, state machines, matching algorithms and **every deliberate change
 from the original specification** — is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -72,6 +73,18 @@ npm run dev
 The footer of the web app shows **"All systems operational"** when the frontend, API and database
 are all connected.
 
+### Create the first administrator
+
+There is deliberately no public way to register as an administrator. Create one from the command
+line (the password is generated and printed once, or taken from `ADMIN_PASSWORD`):
+
+```bash
+npm run create-admin -w @bbms/backend -- --email admin@example.org --name "Site Admin"
+```
+
+Donors and hospitals register themselves at http://localhost:5173/register. In development,
+verification and password-reset emails are printed to the API terminal — open the link from there.
+
 ## Scripts (run from the repository root)
 
 | Command                           | What it does                                                                     |
@@ -96,6 +109,13 @@ Backend (`backend/.env`, see [backend/.env.example](backend/.env.example)):
 | `CORS_ORIGINS`                            |          | `http://localhost:5173` | Comma-separated allowed browser origins (no `*` in production) |
 | `TRUST_PROXY`                             |          | `0`                     | Number of reverse proxies in front of the API                  |
 | `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX` |          | 15 min / 1000           | General per-IP rate limit                                      |
+| `AUTH_RATE_LIMIT_MAX`                     |          | `20`                    | Per-IP limit (per 15 min) on login, registration, reset        |
+| `JWT_ACCESS_SECRET`                       | ✅       | —                       | ≥ 32 random characters; placeholders are refused in production |
+| `JWT_ACCESS_TTL_SECONDS`                  |          | `900`                   | Access-token lifetime                                          |
+| `REFRESH_TOKEN_TTL_DAYS`                  |          | `7`                     | Refresh-session lifetime                                       |
+| `BCRYPT_ROUNDS`                           |          | `12`                    | Password hashing cost (≥ 10 in production)                     |
+| `APP_URL`                                 |          | `http://localhost:5173` | Web app URL used in email links                                |
+| `COOKIE_SAMESITE`                         |          | `strict`                | `strict` for same-site deployments; `none` only if cross-site  |
 
 The server validates its configuration at startup and refuses to start with a clear message if
 anything is missing or invalid.
@@ -125,6 +145,18 @@ Every response uses one envelope:
 `errorCode` values are defined once in `packages/shared` and are what the frontend branches on.
 Stack traces and internal messages are never returned; the `requestId` (also sent as the
 `X-Request-Id` header) links a user-visible error to server logs.
+
+## Authentication at a glance
+
+- Short-lived access token (memory only) + rotating httpOnly refresh cookie; reuse of an old refresh
+  token revokes the whole session chain.
+- Roles: `DONOR`, `HOSPITAL`, `BLOOD_BANK_STAFF`, `ADMIN`, mapped to permissions in
+  `packages/shared/src/constants/permissions.ts`. The backend re-checks the user's real role and
+  status on every request.
+- Per-IP rate limits, per-email lockout, email verification, password reset, change password and
+  "sign out of all devices".
+
+Details: [docs/ARCHITECTURE.md §5](docs/ARCHITECTURE.md#5-authentication--authorization).
 
 ## Testing
 

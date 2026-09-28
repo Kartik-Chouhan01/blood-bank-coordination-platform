@@ -1,7 +1,10 @@
-import axios, { AxiosError } from 'axios';
-import { ERROR_CODES, type ApiFailure, type ApiSuccess } from '@bbms/shared';
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { ERROR_CODES, type ApiFailure, type ApiSuccess, type PaginationMeta } from '@bbms/shared';
 import { API_BASE_URL } from '@/constants/app';
-import { ApiClientError } from './apiError';
+import { toApiClientError } from './apiError';
+import { getAccessToken, notifySessionExpired, refreshSession } from './session';
+
+export { toApiClientError } from './apiError';
 
 export const httpClient = axios.create({
   baseURL: API_BASE_URL,
@@ -10,48 +13,63 @@ export const httpClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-export function toApiClientError(error: unknown): ApiClientError {
-  if (error instanceof ApiClientError) return error;
+httpClient.interceptors.request.use((config) => {
+  const token = getAccessToken();
+  if (token) config.headers.set('Authorization', `Bearer ${token}`);
+  return config;
+});
 
-  if (error instanceof AxiosError) {
-    const body = error.response?.data as Partial<ApiFailure> | undefined;
-    if (error.response && body?.errorCode) {
-      return new ApiClientError(
-        body.message ?? 'Request failed',
-        body.errorCode,
-        error.response.status,
-        body.details,
-        body.requestId,
-      );
-    }
-    if (error.response) {
-      return new ApiClientError(
-        error.response.status >= 500
-          ? 'The server encountered a problem. Please try again shortly.'
-          : 'The request could not be completed.',
-        error.response.status >= 500 ? ERROR_CODES.INTERNAL_ERROR : ERROR_CODES.BAD_REQUEST,
-        error.response.status,
-      );
-    }
-    return new ApiClientError(
-      'Unable to reach the server. Check your connection and try again.',
-      ERROR_CODES.NETWORK_ERROR,
-      null,
-    );
-  }
+const REFRESHABLE_CODES: string[] = [
+  ERROR_CODES.TOKEN_EXPIRED,
+  ERROR_CODES.SESSION_EXPIRED,
+  ERROR_CODES.INVALID_TOKEN,
+  ERROR_CODES.UNAUTHENTICATED,
+];
+/** Credential endpoints report their own 401s; retrying them after a refresh makes no sense. */
+const NO_RETRY_PATHS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'];
 
-  return new ApiClientError('Something went wrong.', ERROR_CODES.INTERNAL_ERROR, null);
-}
+type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 
 httpClient.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(toApiClientError(error)),
+  async (error: AxiosError<ApiFailure>) => {
+    const original = error.config as RetriableConfig | undefined;
+    const shouldRefresh =
+      error.response?.status === 401 &&
+      original &&
+      !original._retried &&
+      !NO_RETRY_PATHS.some((path) => original.url?.startsWith(path)) &&
+      REFRESHABLE_CODES.includes(error.response.data?.errorCode ?? '');
+
+    if (shouldRefresh) {
+      original._retried = true;
+      try {
+        await refreshSession();
+        return await httpClient(original);
+      } catch (retryError) {
+        const normalised = toApiClientError(retryError);
+        if (normalised.isUnauthenticated) notifySessionExpired();
+        throw normalised;
+      }
+    }
+    throw toApiClientError(error);
+  },
 );
 
 /** Unwraps the `{ success, data }` envelope so feature code works with plain data. */
-export async function apiGet<T>(url: string, params?: Record<string, unknown>): Promise<T> {
+export async function apiGet<T>(url: string, params?: object): Promise<T> {
   const response = await httpClient.get<ApiSuccess<T>>(url, { params });
   return response.data.data;
+}
+
+export interface Page<T> {
+  items: T[];
+  meta: PaginationMeta;
+}
+
+export async function apiGetPage<T>(url: string, params?: object): Promise<Page<T>> {
+  const response = await httpClient.get<ApiSuccess<T[]>>(url, { params });
+  return { items: response.data.data, meta: response.data.meta! };
 }
 
 export async function apiPost<T>(url: string, body?: unknown): Promise<T> {

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { InvalidEnvironmentError, parseEnv } from '../../src/config/env.js';
 
-const base = { MONGODB_URI: 'mongodb://localhost/test' };
+const base = {
+  MONGODB_URI: 'mongodb://localhost/test',
+  JWT_ACCESS_SECRET: 'x'.repeat(40),
+};
 
 describe('parseEnv', () => {
   it('applies defaults and parses lists and numbers', () => {
@@ -23,5 +26,15 @@ describe('parseEnv', () => {
     expect(() => parseEnv({ ...base, NODE_ENV: 'production', CORS_ORIGINS: '*' })).toThrow(
       /wildcard/,
     );
+  });
+
+  it('refuses a placeholder JWT secret in production', () => {
+    expect(() =>
+      parseEnv({ ...base, NODE_ENV: 'production', JWT_ACCESS_SECRET: 'change-me-'.repeat(4) }),
+    ).toThrow(/JWT_ACCESS_SECRET/);
+  });
+
+  it('requires a JWT secret of at least 32 characters', () => {
+    expect(() => parseEnv({ ...base, JWT_ACCESS_SECRET: 'short' })).toThrow(/JWT_ACCESS_SECRET/);
   });
 });
