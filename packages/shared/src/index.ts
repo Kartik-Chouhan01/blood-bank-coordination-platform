@@ -15,3 +15,6 @@ export * from './constants/audit.js';
 export * from './api/organisations.js';
 export * from './validation/organisations.js';
 export * from './validation/staff.js';
+export * from './constants/inventory.js';
+export * from './api/inventory.js';
+export * from './validation/inventory.js';

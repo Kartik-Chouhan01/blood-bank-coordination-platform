@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { z } from 'zod';
+import { COMPONENT_TYPES, DEFAULT_SHELF_LIFE_DAYS, type ComponentType } from '@bbms/shared';
 
 const commaSeparatedList = z.string().transform((value) =>
   value
@@ -7,6 +8,35 @@ const commaSeparatedList = z.string().transform((value) =>
     .map((item) => item.trim())
     .filter(Boolean),
 );
+
+/** "PRBC=42,PLATELETS=5" → overrides merged onto the defaults. */
+const shelfLifeSchema = z
+  .string()
+  .optional()
+  .transform((value, ctx) => {
+    const result: Record<ComponentType, number> = { ...DEFAULT_SHELF_LIFE_DAYS };
+    for (const pair of (value ?? '')
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)) {
+      const [key, days] = pair.split('=').map((p) => p.trim());
+      const parsed = Number(days);
+      if (
+        !(COMPONENT_TYPES as readonly string[]).includes(key ?? '') ||
+        !Number.isInteger(parsed) ||
+        parsed < 1 ||
+        parsed > 3650
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `invalid entry "${pair}" (expected COMPONENT=days)`,
+        });
+        return z.NEVER;
+      }
+      result[key as ComponentType] = parsed;
+    }
+    return result;
+  });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -42,6 +72,17 @@ const envSchema = z.object({
    * donor about donating again. Not a medical rule — blood-bank staff set it to local regulations.
    */
   DONOR_CONTACT_INTERVAL_DAYS: z.coerce.number().int().min(1).max(365).default(90),
+
+  /** Shelf life per component; defaults are reference values — set to local regulations. */
+  SHELF_LIFE_DAYS: shelfLifeSchema,
+  /** Units expiring within this many days are flagged as "expiring soon". */
+  EXPIRY_WARNING_DAYS: z.coerce.number().int().min(1).max(60).default(3),
+  EXPIRY_SWEEP_INTERVAL_MINUTES: z.coerce.number().int().min(1).max(1440).default(5),
+  /** Background jobs (expiry sweep). Disabled in tests; tests call jobs directly. */
+  JOBS_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
 });
 
 export type Env = z.infer<typeof envSchema>;

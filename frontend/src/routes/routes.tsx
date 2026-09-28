@@ -20,6 +20,11 @@ import { HospitalDetailPage } from '@/features/admin/pages/HospitalDetailPage';
 import { BloodBanksPage } from '@/features/admin/pages/BloodBanksPage';
 import { AuditLogPage } from '@/features/admin/pages/AuditLogPage';
 import { AcceptInvitePage } from '@/features/auth/pages/AcceptInvitePage';
+import { InventoryPage } from '@/features/inventory/pages/InventoryPage';
+import { UnitDetailPage } from '@/features/inventory/pages/UnitDetailPage';
+import { DonationsPage } from '@/features/inventory/pages/DonationsPage';
+import { DonationDetailPage } from '@/features/inventory/pages/DonationDetailPage';
+import { RecordDonationPage } from '@/features/inventory/pages/RecordDonationPage';
 import { DonorOverviewPage } from '@/features/donor/pages/DonorOverviewPage';
 import { DonorProfilePage } from '@/features/donor/pages/DonorProfilePage';
 import { DonorDonationsPage } from '@/features/donor/pages/DonorDonationsPage';
@@ -99,6 +104,27 @@ export const routes: RouteObject[] = [
                 children: [
                   { index: true, element: <DonorsPage /> },
                   { path: ':id', element: <DonorDetailPage /> },
+                ],
+              },
+              {
+                path: 'inventory',
+                element: <RequirePermission permission="inventory:read" />,
+                children: [
+                  { index: true, element: <InventoryPage /> },
+                  { path: 'units/:id', element: <UnitDetailPage /> },
+                ],
+              },
+              {
+                path: 'donations',
+                element: <RequirePermission permission="inventory:read" />,
+                children: [
+                  { index: true, element: <DonationsPage /> },
+                  {
+                    path: 'new',
+                    element: <RequirePermission permission="inventory:manage" />,
+                    children: [{ index: true, element: <RecordDonationPage /> }],
+                  },
+                  { path: ':id', element: <DonationDetailPage /> },
                 ],
               },
               {

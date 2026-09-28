@@ -18,8 +18,9 @@ coordinating hospitals, blood banks, administrators and potential donors.
 | 2     | Authentication & role-based access control, admin user management                                           | ✅ Done |
 | 3     | Donor profiles, availability, notification preferences; staff donor directory & verification                | ✅ Done |
 | 4     | Hospitals & verification, blood banks, staff invitations, audit log viewer                                  | ✅ Done |
-| 5     | Blood inventory: donations, units, testing, unit lifecycle, expiry                                          | ⏭ Next  |
-| 6–11  | Requests, matching, notifications, analytics, security review, testing & deployment                         | Planned |
+| 5     | Blood inventory: donations, units, testing, unit lifecycle, expiry                                          | ✅ Done |
+| 6     | Blood requests: lifecycle, urgency, review                                                                  | ⏭ Next  |
+| 7–11  | Matching, notifications, analytics, security review, testing & deployment                                   | Planned |
 
 The full design — entities, APIs, state machines, matching algorithms and **every deliberate change
 from the original specification** — is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -122,6 +123,10 @@ Backend (`backend/.env`, see [backend/.env.example](backend/.env.example)):
 | `APP_URL`                                 |          | `http://localhost:5173` | Web app URL used in email links                                |
 | `COOKIE_SAMESITE`                         |          | `strict`                | `strict` for same-site deployments; `none` only if cross-site  |
 | `DONOR_CONTACT_INTERVAL_DAYS`             |          | `90`                    | Days after a donation before the system may contact a donor    |
+| `SHELF_LIFE_DAYS`                         |          | reference values        | Per-component overrides, e.g. `PLATELETS=7,PRBC=35`            |
+| `EXPIRY_WARNING_DAYS`                     |          | `3`                     | "Expiring soon" window                                         |
+| `EXPIRY_SWEEP_INTERVAL_MINUTES`           |          | `5`                     | How often expired units are marked                             |
+| `JOBS_ENABLED`                            |          | `true`                  | Background jobs on/off                                         |
 
 The server validates its configuration at startup and refuses to start with a clear message if
 anything is missing or invalid.

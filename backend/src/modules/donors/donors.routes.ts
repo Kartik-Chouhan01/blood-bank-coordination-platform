@@ -13,6 +13,7 @@ import { authenticate } from '../../middleware/authenticate.js';
 import { authorize } from '../../middleware/authorize.js';
 import { validate } from '../../middleware/validate.js';
 import * as controller from './donors.controller.js';
+import { listOwnDonations } from '../inventory/inventory.controller.js';
 
 export const donorsRouter = Router();
 const idParams = z.object({ id: objectIdSchema });
@@ -39,6 +40,8 @@ donorsRouter.put(
   validate({ body: notificationPreferencesSchema }),
   controller.updateMyNotificationPreferences,
 );
+
+donorsRouter.get('/me/donations', authorize('donor:self'), listOwnDonations);
 
 // Staff
 donorsRouter.get(

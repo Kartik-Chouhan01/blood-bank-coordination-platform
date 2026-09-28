@@ -7,6 +7,7 @@ import { UserModel } from '../modules/users/user.model.js';
 export interface RequestAuth {
   userId: string;
   role: Role;
+  bloodBankId: string | null;
 }
 
 declare module 'express-serve-static-core' {
@@ -26,7 +27,7 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
 
   const claims = verifyAccessToken(header.slice('Bearer '.length).trim());
   const user = await UserModel.findById(claims.sub)
-    .select('role accountStatus tokenVersion')
+    .select('role accountStatus tokenVersion bloodBankId')
     .lean();
 
   if (!user || user.tokenVersion !== claims.tv) {
@@ -42,6 +43,10 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
     return next(new AppError(403, ERROR_CODES.ACCOUNT_SUSPENDED, 'This account is not active.'));
   }
 
-  req.auth = { userId: user._id.toString(), role: user.role };
+  req.auth = {
+    userId: user._id.toString(),
+    role: user.role,
+    bloodBankId: user.bloodBankId?.toString() ?? null,
+  };
   next();
 };

@@ -18,6 +18,7 @@ export default defineConfig({
       JWT_ACCESS_SECRET: 'test-only-access-secret-at-least-32-characters',
       BCRYPT_ROUNDS: '4',
       AUTH_RATE_LIMIT_MAX: '10000',
+      JOBS_ENABLED: 'false',
     },
   },
 });

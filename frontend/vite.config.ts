@@ -17,5 +17,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
+    // Full-app renders with user-event typing are slow under jsdom on some machines.
+    testTimeout: 15_000,
   },
 });

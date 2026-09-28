@@ -3,6 +3,7 @@ import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { createApp } from './app.js';
+import { startJobs, stopJobs } from './jobs/scheduler.js';
 
 async function start() {
   try {
@@ -20,6 +21,7 @@ async function start() {
     logger.info(`API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
   });
 
+  startJobs();
   registerShutdownHandlers(server);
 }
 
@@ -37,6 +39,7 @@ function registerShutdownHandlers(server: Server) {
     }, 10_000);
     forceExit.unref();
 
+    stopJobs();
     server.close(async () => {
       await disconnectDatabase();
       process.exit(0);

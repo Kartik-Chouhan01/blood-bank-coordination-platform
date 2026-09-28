@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import {
   ArrowRight,
+  Boxes,
   Building2,
   HeartHandshake,
   Hospital,
@@ -15,6 +16,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { hospitalsApi } from '@/features/organisations/api';
+import { unitsApi } from '@/features/inventory/api';
 
 const firstName = (name: string) => name.split(' ')[0];
 
@@ -57,6 +59,12 @@ export function AdminHomePage() {
   const canReadHospitals = usePermission('hospitals:read');
   const canReadBanks = usePermission('bloodBanks:read');
   const canReadAudit = usePermission('audit:read');
+  const canReadInventory = usePermission('inventory:read');
+  const ownBank = user?.profile?.kind === 'STAFF' ? user.profile.bloodBankId : undefined;
+  const stock = useApiQuery(
+    () => (canReadInventory ? unitsApi.summary(ownBank) : Promise.resolve(null)),
+    [canReadInventory, ownBank],
+  );
   const pending = useApiQuery(
     () =>
       canReadHospitals
@@ -66,6 +74,8 @@ export function AdminHomePage() {
   );
   if (!user) return null;
   const pendingCount = pending.data ?? 0;
+  const expiringSoon = stock.data?.expiringSoon ?? 0;
+  const availableUnits = stock.data?.byStatus.AVAILABLE ?? 0;
 
   return (
     <>
@@ -74,6 +84,16 @@ export function AdminHomePage() {
         description={`${ROLE_LABELS[user.role]} console`}
       />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {canReadInventory && (
+          <ConsoleCard
+            to="/admin/inventory"
+            icon={Boxes}
+            title="Blood inventory"
+            body={`${availableUnits} units available${ownBank ? ' at your blood bank' : ''}. Track testing, expiry and disposal.`}
+            cta="Open inventory"
+            badge={expiringSoon ? `${expiringSoon} expiring soon` : undefined}
+          />
+        )}
         {canReadDonors && (
           <ConsoleCard
             to="/admin/donors"

@@ -3,7 +3,9 @@ import { NavLink, Outlet, useNavigate } from 'react-router';
 import { hasPermission, ROLE_LABELS, type Permission } from '@bbms/shared';
 import {
   Bell,
+  Boxes,
   Building2,
+  Droplet,
   Hospital,
   ScrollText,
   Droplets,
@@ -49,6 +51,8 @@ function navItemsFor(homePath: string): NavItem[] {
       icon: Hospital,
       permission: 'hospital:self',
     },
+    { to: '/admin/inventory', label: 'Inventory', icon: Boxes, permission: 'inventory:read' },
+    { to: '/admin/donations', label: 'Donations', icon: Droplet, permission: 'inventory:read' },
     { to: '/admin/donors', label: 'Donors', icon: HeartHandshake, permission: 'donors:read' },
     { to: '/admin/hospitals', label: 'Hospitals', icon: Hospital, permission: 'hospitals:read' },
     {

@@ -7,6 +7,8 @@ import { truncateIp } from './ip.js';
 export interface Actor {
   userId: Types.ObjectId | null;
   role: Role | 'SYSTEM';
+  /** The blood bank a staff member belongs to (staff may only change their own bank's records). */
+  bloodBankId?: Types.ObjectId | null;
   requestId?: string;
   ipTruncated?: string;
   userAgent?: string;
@@ -29,6 +31,7 @@ export function actorFromRequest(req: Request): Actor {
   return {
     userId: new Types.ObjectId(req.auth.userId),
     role: req.auth.role,
+    bloodBankId: req.auth.bloodBankId ? new Types.ObjectId(req.auth.bloodBankId) : null,
     ...requestContext(req),
   };
 }
