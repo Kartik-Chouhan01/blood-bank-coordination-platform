@@ -6,6 +6,7 @@ import {
   HeartHandshake,
   Hospital,
   ScrollText,
+  Send,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -17,6 +18,7 @@ import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { hospitalsApi } from '@/features/organisations/api';
 import { unitsApi } from '@/features/inventory/api';
+import { requestsApi } from '@/features/requests/api';
 
 const firstName = (name: string) => name.split(' ')[0];
 
@@ -60,6 +62,11 @@ export function AdminHomePage() {
   const canReadBanks = usePermission('bloodBanks:read');
   const canReadAudit = usePermission('audit:read');
   const canReadInventory = usePermission('inventory:read');
+  const canReadRequests = usePermission('requests:read');
+  const requestStats = useApiQuery(
+    () => (canReadRequests ? requestsApi.stats() : Promise.resolve(null)),
+    [canReadRequests],
+  );
   const ownBank = user?.profile?.kind === 'STAFF' ? user.profile.bloodBankId : undefined;
   const stock = useApiQuery(
     () => (canReadInventory ? unitsApi.summary(ownBank) : Promise.resolve(null)),
@@ -84,6 +91,20 @@ export function AdminHomePage() {
         description={`${ROLE_LABELS[user.role]} console`}
       />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {canReadRequests && (
+          <ConsoleCard
+            to="/admin/requests"
+            icon={Send}
+            title="Blood requests"
+            body={`${requestStats.data?.open ?? 0} open, ${requestStats.data?.pendingReview ?? 0} awaiting review.`}
+            cta="Open request queue"
+            badge={
+              requestStats.data?.openEmergency
+                ? `${requestStats.data.openEmergency} emergency`
+                : undefined
+            }
+          />
+        )}
         {canReadInventory && (
           <ConsoleCard
             to="/admin/inventory"

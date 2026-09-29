@@ -19,8 +19,9 @@ coordinating hospitals, blood banks, administrators and potential donors.
 | 3     | Donor profiles, availability, notification preferences; staff donor directory & verification                | ✅ Done |
 | 4     | Hospitals & verification, blood banks, staff invitations, audit log viewer                                  | ✅ Done |
 | 5     | Blood inventory: donations, units, testing, unit lifecycle, expiry                                          | ✅ Done |
-| 6     | Blood requests: lifecycle, urgency, review                                                                  | ⏭ Next  |
-| 7–11  | Matching, notifications, analytics, security review, testing & deployment                                   | Planned |
+| 6     | Blood requests: lifecycle, urgency, staff review queue, expiry                                              | ✅ Done |
+| 7     | Matching: compatibility, unit allocation, donor outreach                                                    | ⏭ Next  |
+| 8–11  | Notifications, analytics, security review, testing & deployment                                             | Planned |
 
 The full design — entities, APIs, state machines, matching algorithms and **every deliberate change
 from the original specification** — is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -127,6 +128,7 @@ Backend (`backend/.env`, see [backend/.env.example](backend/.env.example)):
 | `EXPIRY_WARNING_DAYS`                     |          | `3`                     | "Expiring soon" window                                         |
 | `EXPIRY_SWEEP_INTERVAL_MINUTES`           |          | `5`                     | How often expired units are marked                             |
 | `JOBS_ENABLED`                            |          | `true`                  | Background jobs on/off                                         |
+| `REQUEST_EXPIRY_GRACE_HOURS`              |          | `2`                     | Hours an overdue request stays open before it expires          |
 
 The server validates its configuration at startup and refuses to start with a clear message if
 anything is missing or invalid.

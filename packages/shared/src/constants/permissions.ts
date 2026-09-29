@@ -20,6 +20,7 @@ export const PERMISSIONS = {
   'inventory:read': ['BLOOD_BANK_STAFF', 'ADMIN'],
   'inventory:manage': ['BLOOD_BANK_STAFF', 'ADMIN'],
   'requests:create': ['HOSPITAL'],
+  'requests:read': ['BLOOD_BANK_STAFF', 'ADMIN'],
   'requests:review': ['BLOOD_BANK_STAFF', 'ADMIN'],
   'matching:allocate': ['BLOOD_BANK_STAFF', 'ADMIN'],
   'audit:read': ['ADMIN'],

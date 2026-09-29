@@ -26,6 +26,12 @@ export const AUDIT_ACTIONS = [
   'DONATION_TEST_RESULT_RECORDED',
   'BLOOD_UNIT_STATUS_CHANGED',
   'WORKFLOW_OVERRIDE',
+  'REQUEST_CREATED',
+  'REQUEST_UPDATED',
+  'REQUEST_ESCALATED',
+  'REQUEST_REVIEWED',
+  'REQUEST_CANCELLED',
+  'REQUEST_STATUS_CHANGED',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -36,6 +42,7 @@ export const AUDIT_ENTITY_TYPES = [
   'BloodBank',
   'Donation',
   'BloodUnit',
+  'BloodRequest',
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
@@ -63,4 +70,10 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   DONATION_TEST_RESULT_RECORDED: 'Test result recorded',
   BLOOD_UNIT_STATUS_CHANGED: 'Blood unit status changed',
   WORKFLOW_OVERRIDE: 'Administrator override',
+  REQUEST_CREATED: 'Blood request raised',
+  REQUEST_UPDATED: 'Blood request edited',
+  REQUEST_ESCALATED: 'Request urgency escalated',
+  REQUEST_REVIEWED: 'Blood request reviewed',
+  REQUEST_CANCELLED: 'Blood request cancelled',
+  REQUEST_STATUS_CHANGED: 'Request status changed',
 };

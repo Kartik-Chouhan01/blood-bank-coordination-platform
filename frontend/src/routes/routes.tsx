@@ -25,6 +25,10 @@ import { UnitDetailPage } from '@/features/inventory/pages/UnitDetailPage';
 import { DonationsPage } from '@/features/inventory/pages/DonationsPage';
 import { DonationDetailPage } from '@/features/inventory/pages/DonationDetailPage';
 import { RecordDonationPage } from '@/features/inventory/pages/RecordDonationPage';
+import { HospitalRequestsPage } from '@/features/requests/pages/HospitalRequestsPage';
+import { NewRequestPage } from '@/features/requests/pages/NewRequestPage';
+import { RequestDetailPage } from '@/features/requests/pages/RequestDetailPage';
+import { RequestsQueuePage } from '@/features/requests/pages/RequestsQueuePage';
 import { DonorOverviewPage } from '@/features/donor/pages/DonorOverviewPage';
 import { DonorProfilePage } from '@/features/donor/pages/DonorProfilePage';
 import { DonorDonationsPage } from '@/features/donor/pages/DonorDonationsPage';
@@ -91,6 +95,9 @@ export const routes: RouteObject[] = [
             children: [
               { index: true, element: <HospitalOverviewPage /> },
               { path: 'profile', element: <HospitalProfilePage /> },
+              { path: 'requests', element: <HospitalRequestsPage /> },
+              { path: 'requests/new', element: <NewRequestPage /> },
+              { path: 'requests/:id', element: <RequestDetailPage area="hospital" /> },
             ],
           },
           {
@@ -104,6 +111,14 @@ export const routes: RouteObject[] = [
                 children: [
                   { index: true, element: <DonorsPage /> },
                   { path: ':id', element: <DonorDetailPage /> },
+                ],
+              },
+              {
+                path: 'requests',
+                element: <RequirePermission permission="requests:read" />,
+                children: [
+                  { index: true, element: <RequestsQueuePage /> },
+                  { path: ':id', element: <RequestDetailPage area="admin" /> },
                 ],
               },
               {

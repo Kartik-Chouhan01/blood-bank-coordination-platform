@@ -78,6 +78,8 @@ const envSchema = z.object({
   /** Units expiring within this many days are flagged as "expiring soon". */
   EXPIRY_WARNING_DAYS: z.coerce.number().int().min(1).max(60).default(3),
   EXPIRY_SWEEP_INTERVAL_MINUTES: z.coerce.number().int().min(1).max(1440).default(5),
+  /** Open requests stay "overdue" (still actionable) this long after required-by before expiring. */
+  REQUEST_EXPIRY_GRACE_HOURS: z.coerce.number().int().min(0).max(168).default(2),
   /** Background jobs (expiry sweep). Disabled in tests; tests call jobs directly. */
   JOBS_ENABLED: z
     .enum(['true', 'false'])

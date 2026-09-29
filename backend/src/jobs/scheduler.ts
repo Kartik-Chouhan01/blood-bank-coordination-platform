@@ -1,6 +1,7 @@
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { runExpirySweep } from './expirySweep.js';
+import { runRequestExpirySweep } from './requestExpirySweep.js';
 
 interface Job {
   name: string;
@@ -23,6 +24,11 @@ export function startJobs() {
       name: 'expiry-sweep',
       intervalMs: env.EXPIRY_SWEEP_INTERVAL_MINUTES * 60_000,
       run: () => runExpirySweep(),
+    },
+    {
+      name: 'request-expiry-sweep',
+      intervalMs: env.EXPIRY_SWEEP_INTERVAL_MINUTES * 60_000,
+      run: () => runRequestExpirySweep(),
     },
   ];
 
