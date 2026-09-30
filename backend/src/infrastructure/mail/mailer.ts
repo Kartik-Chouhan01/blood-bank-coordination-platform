@@ -49,12 +49,17 @@ export function setMailAdapter(next: MailAdapter) {
   adapter = next;
 }
 
-/** Email failures are logged, never thrown: they must not roll back the action that triggered them. */
-export async function sendMail(message: MailMessage) {
+/**
+ * Email failures are logged, never thrown: they must not roll back the action that triggered them.
+ * Resolves to whether the message was handed to the transport.
+ */
+export async function sendMail(message: MailMessage): Promise<boolean> {
   try {
     await adapter.send(message);
+    return true;
   } catch (err) {
     logger.error({ err, template: message.template }, 'Failed to send email');
+    return false;
   }
 }
 

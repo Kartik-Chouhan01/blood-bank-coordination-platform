@@ -88,6 +88,23 @@ const envSchema = z.object({
   /** Contact about this many donors per missing unit (not everyone responds), up to the cap. */
   OUTREACH_DONORS_PER_UNIT: z.coerce.number().int().min(1).max(10).default(3),
   OUTREACH_MAX_DONORS: z.coerce.number().int().min(1).max(50).default(30),
+  /** Time zone for dates written into notification and email text (IANA name). */
+  APP_TIME_ZONE: z
+    .string()
+    .default('Asia/Kolkata')
+    .refine(
+      (zone) => {
+        try {
+          new Intl.DateTimeFormat('en', { timeZone: zone });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { message: 'must be an IANA time zone such as Asia/Kolkata' },
+    ),
+  /** Notifications are deleted automatically this many days after they were created. */
+  NOTIFICATION_RETENTION_DAYS: z.coerce.number().int().min(7).max(3650).default(180),
   /** Background jobs (expiry sweep). Disabled in tests; tests call jobs directly. */
   JOBS_ENABLED: z
     .enum(['true', 'false'])

@@ -86,7 +86,7 @@ SystemSetting (typed key/value; defaults live in code)
 | BloodRequest      | requestNumber, hospitalId, bloodGroup, componentType, unitsRequested/Allocated/Issued, urgency, requiredBy, reasonCategory, hospitalReference (opaque — no patient identity), status, statusHistory[], outreachStatus, version              | {status, urgency, createdAt}; {hospitalId, createdAt}; requestNumber unique             |
 | Allocation        | requestId, unitId, status, reservedBy/At, holdUntil, issuedBy/At, releaseReason                                                                                                                                                             | **partial unique on unitId where status ∈ {RESERVED, ISSUED}**                          |
 | DonorOutreach     | requestId, donorId, score, approxDistanceKm, status, notifiedAt, respondedAt                                                                                                                                                                | {requestId, donorId} unique; {donorId, notifiedAt}                                      |
-| Notification      | recipientId, type, title, message, entity{type,id}, priority, readAt, deliveries[]                                                                                                                                                          | {recipientId, readAt, createdAt}                                                        |
+| Notification      | recipientId, type, title, message, link, entity{type,id}, priority, readAt, deliveries[]                                                                                                                                                    | {recipientId, readAt, createdAt}; TTL(createdAt)                                        |
 | AuditLog          | actorId, actorRole, action, entityType, entityId, before, after, reason, meta{requestId, ipTruncated, userAgent}                                                                                                                            | {entityType, entityId, createdAt}; {actorId, createdAt}; append-only                    |
 | SystemSetting     | key, value, updatedBy                                                                                                                                                                                                                       | key unique                                                                              |
 
@@ -107,7 +107,7 @@ Envelope: `{ success: true, data, meta? }` or `{ success: false, message, errorC
 | `/api/requests`       | hospital: create, `mine`, `mine/stats`, edit (PENDING), `:id/escalate`, `:id/confirm-receipt`; staff: queue (priority-sorted), `stats`, `:id/review`; both: `:id` (incl. allocations), `:id/cancel` — **built**              | HOSPITAL (own) / STAFF, ADMIN                |
 | `/api/matching`       | `requests/:id/inventory` (ranked candidates), `requests/:id/allocations` (reserve), `allocations/:id/release`, `allocations/:id/issue`, `requests/:id/donors` (search), `requests/:id/outreach` (list / contact) — **built** | STAFF, ADMIN (change: own bank / ADMIN)      |
 | `/api/donor-outreach` | `mine`, `:id/respond` — **built**                                                                                                                                                                                            | DONOR (own)                                  |
-| `/api/notifications`  | mine, unread-count, read, read-all                                                                                                                                                                                           | owner                                        |
+| `/api/notifications`  | list (`?unread=true`, paginated), `unread-count`, `:id/read`, `read-all` — **built**                                                                                                                                         | owner (any signed-in user)                   |
 | `/api/dashboard`      | donor / hospital / admin / analytics / public-stats                                                                                                                                                                          | role-scoped                                  |
 | `/api/audit-logs`     | filtered, paginated, read-only list (action, record type, record id, actor, date range) — **built**                                                                                                                          | ADMIN                                        |
 | `/api/settings`       | get / patch (reason required, audited)                                                                                                                                                                                       | ADMIN                                        |
@@ -247,11 +247,42 @@ approximate location are matched by the hospital's city; score weights proximity
 20, staff-confirmed group 10, time since contact allowed 15, response history 15 (no history is
 neutral). Suggested contacts = shortfall × `OUTREACH_DONORS_PER_UNIT` (3), at most
 `OUTREACH_MAX_DONORS` (30) per request. Staff confirm the selection; EMERGENCY requests contact the
-top suggestions automatically only when compatible stock cannot cover them. Until notifications
-exist (Phase 8), donors see requests for help on their dashboard; unanswered outreach becomes
+top suggestions automatically only when compatible stock cannot cover them. Contacted donors are
+notified on their chosen channels and answer on their dashboard; unanswered outreach becomes
 NO_RESPONSE when the request closes or passes required-by.
 
-## 10. Security
+## 10. Notifications
+
+`modules/notifications`: `notify.ts` maps business events to recipients and wording;
+`notifications.service.ts` stores and delivers them. Rules:
+
+- **After commit only.** Every event is announced after its transaction commits (a rolled-back
+  change is never announced) and delivery never throws — a failure is logged and recorded, and
+  the action still succeeds.
+- **Channels.** In-app is stored first; email follows and each channel's outcome (SENT / SKIPPED /
+  FAILED) is recorded in `deliveries[]`. Email goes only to **verified** addresses. Donors choose
+  in-app and/or email (`notificationPreferences`); other roles get in-app always and email for
+  events they must not miss.
+- **Content.** No patient details anywhere; donors are never told which hospital asked. Dates in
+  text use `APP_TIME_ZONE` (default Asia/Kolkata).
+- **Retention.** A TTL index removes notifications after `NOTIFICATION_RETENTION_DAYS` (180).
+- **Client.** The header bell polls the unread count every 60 s while the tab is visible (and on
+  focus / after reads); there is no push channel yet.
+
+| Event                                             | Recipients                                                     | Priority / email                                |
+| ------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------- |
+| Request approved / rejected                       | Hospital                                                       | NORMAL / HIGH · email                           |
+| Request cancelled by staff · expired              | Hospital                                                       | HIGH / NORMAL · email                           |
+| Units reserved                                    | Hospital                                                       | NORMAL · in-app                                 |
+| Unit issued (all issued → "confirm receipt")      | Hospital                                                       | HIGH · email                                    |
+| Hospital verification decision                    | Hospital                                                       | in-app (the existing email is unchanged)        |
+| New or escalated EMERGENCY / URGENT request       | All active staff and administrators                            | CRITICAL · email / HIGH · in-app; ROUTINE: none |
+| Approved request cancelled by the hospital        | All active staff and administrators                            | NORMAL · in-app                                 |
+| Reservation released by the system (hold, expiry) | Staff of the unit's bank (administrators if the bank has none) | HIGH for open urgent requests · in-app          |
+| Donor answered "I can help"                       | The staff member who contacted donors (everyone for automatic) | HIGH unless routine · in-app                    |
+| Request for help                                  | The donor, on their chosen channels                            | CRITICAL for emergencies, else HIGH             |
+
+## 11. Security
 
 helmet · CORS allowlist (wildcard refused in production) · per-IP rate limit (stricter on auth) ·
 a request guard rejecting `$`-prefixed or dotted keys anywhere in body/query, plus zod validation that
@@ -259,7 +290,7 @@ strips unknown keys (NoSQL-injection and mass-assignment guard) · 100 kb JSON l
 internal messages · request ids for support correlation · pino log redaction of credentials, tokens,
 email, phone and date of birth · secrets only from environment, validated at startup.
 
-## 11. Testing
+## 12. Testing
 
 - **Backend** — Vitest + Supertest against a real single-node replica set (mongodb-memory-server),
   so transactions and unique indexes behave exactly as in production. Unit tests for pure domain
@@ -267,7 +298,7 @@ email, phone and date of birth · secrets only from environment, validated at st
 - **Frontend** — Vitest + React Testing Library (jsdom).
 - **Shared** — Vitest for enum helpers.
 
-## 12. Phases
+## 13. Phases
 
 | #   | Phase                                                                                  | Status   |
 | --- | -------------------------------------------------------------------------------------- | -------- |
@@ -278,8 +309,8 @@ email, phone and date of birth · secrets only from environment, validated at st
 | 5   | Inventory: donations, units, testing, unit state machine, expiry job                   | **done** |
 | 6   | Requests lifecycle                                                                     | **done** |
 | 7   | Matching: compatibility, allocation, donor outreach                                    | **done** |
-| 8   | Notifications                                                                          | next     |
-| 9   | Dashboards & analytics                                                                 |          |
+| 8   | Notifications                                                                          | **done** |
+| 9   | Dashboards & analytics                                                                 | next     |
 | 10  | Security & audit review                                                                |          |
 | 11  | Test hardening, seed data, OpenAPI docs, deployment config                             |          |
 
@@ -412,3 +443,16 @@ Approved deviations, with rationale. New items are appended as phases land.
 | A65 | Donors can change their answer (interested ⇄ declined) while the request is open; marking outreach DONATED is deferred to a later phase.                                                                              | People's plans change; linking a donation to an outreach needs more workflow than this phase. |
 | A66 | Emergency auto-outreach runs after the request commits and never fails the request; its outreach is recorded with no human actor.                                                                                     | Raising an emergency request must not depend on the donor search succeeding.                  |
 | A67 | The request's `exactMatchAvailable` hint (A55) is replaced by `stock { exact, compatibleSubstitutes }`, shown to staff while the request is open, including during review.                                            | Reviewers see realistic availability, using the same filter the allocation uses.              |
+
+### Added during Phase 8
+
+| #   | Change                                                                                                                                                | Why                                                                                                  |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| A68 | Notifications are delivered **after commit** and never fail the triggering action; every channel's outcome is recorded on the notification.           | A rolled-back change must never be announced, and an email outage must not block blood coordination. |
+| A69 | Email is sent only to **verified** addresses; otherwise the email delivery is recorded as SKIPPED.                                                    | An unverified address may belong to someone else.                                                    |
+| A70 | Staff are notified about EMERGENCY and URGENT requests only (emergencies also by email); ROUTINE requests appear in the queue without a notification. | Alerts keep their meaning when they are reserved for time-critical work.                             |
+| A71 | Automatic reservation releases notify only the staff of the unit's bank; donor replies notify the staff member who reached out.                       | The people who can act are told; everyone else is spared noise.                                      |
+| A72 | Donors with in-app notifications turned off get email only (no stored notification); donors with both off are not contacted at all (Phase 7 filter).  | Respects the donor's choice literally.                                                               |
+| A73 | Notifications expire after `NOTIFICATION_RETENTION_DAYS` (TTL index); message dates use `APP_TIME_ZONE`.                                              | Bounded growth; readable times for users instead of UTC.                                             |
+| A74 | Unread badge by 60-second polling (visible tabs only) instead of WebSockets/SSE.                                                                      | Simple and robust behind any proxy; a push channel can replace it without API changes.               |
+| A75 | A57 reversed: the UI now says staff are alerted for emergencies, because they are.                                                                    | Wording follows what the system actually does.                                                       |

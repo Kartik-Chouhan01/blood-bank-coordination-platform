@@ -21,8 +21,9 @@ coordinating hospitals, blood banks, administrators and potential donors.
 | 5     | Blood inventory: donations, units, testing, unit lifecycle, expiry                                          | ✅ Done |
 | 6     | Blood requests: lifecycle, urgency, staff review queue, expiry                                              | ✅ Done |
 | 7     | Matching: compatibility, unit allocation, donor outreach                                                    | ✅ Done |
-| 8     | Notifications                                                                                               | ⏭ Next  |
-| 9–11  | Analytics, security review, testing & deployment                                                            | Planned |
+| 8     | Notifications: in-app and email, header bell, notifications page                                            | ✅ Done |
+| 9     | Dashboards & analytics                                                                                      | ⏭ Next  |
+| 10–11 | Security review, testing & deployment                                                                       | Planned |
 
 The full design — entities, APIs, state machines, matching algorithms and **every deliberate change
 from the original specification** — is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

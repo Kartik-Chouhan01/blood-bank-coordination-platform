@@ -7,6 +7,7 @@ import { BloodUnitModel } from '../modules/inventory/bloodUnit.model.js';
 import { transitionUnit } from '../modules/inventory/unitTransitions.js';
 import { AllocationModel } from '../modules/matching/allocation.model.js';
 import { releaseAllocationInSession } from '../modules/matching/allocationWorkflow.js';
+import { reservationReleased } from '../modules/notifications/notify.js';
 
 const REASON = 'Reached expiry date';
 
@@ -36,7 +37,7 @@ export async function runExpirySweep(now = new Date()): Promise<number> {
 
     for (const unit of due) {
       try {
-        await withTransaction(async (session) => {
+        const released = await withTransaction(async (session) => {
           const allocation =
             unit.status === 'RESERVED'
               ? await AllocationModel.findOne({ unitId: unit._id, status: 'RESERVED' })
@@ -52,6 +53,7 @@ export async function runExpirySweep(now = new Date()): Promise<number> {
               unitTo: 'EXPIRED',
               session,
             });
+            return allocation;
           } else {
             await transitionUnit({
               unit,
@@ -62,9 +64,11 @@ export async function runExpirySweep(now = new Date()): Promise<number> {
               ...(unit.status === 'RESERVED' && { set: { currentAllocationId: null } }),
               session,
             });
+            return null;
           }
         });
         expired += 1;
+        if (released) await reservationReleased(released.requestId, released.unitId, REASON);
       } catch (err) {
         // Someone changed the unit concurrently; the next sweep will look at it again.
         if (!(err instanceof AppError)) throw err;

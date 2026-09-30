@@ -7,6 +7,7 @@ import { withTransaction } from '../utils/mongoose.js';
 import { BloodRequestModel } from '../modules/requests/bloodRequest.model.js';
 import { transitionRequest } from '../modules/requests/requestTransitions.js';
 import { releaseAllForRequestInSession } from '../modules/matching/allocationWorkflow.js';
+import { requestExpired } from '../modules/notifications/notify.js';
 
 const REASON = 'Required-by time passed before any units were issued';
 
@@ -46,6 +47,7 @@ export async function runRequestExpirySweep(now = new Date()): Promise<number> {
           });
         });
         expired += 1;
+        await requestExpired(request._id);
       } catch (err) {
         if (!(err instanceof AppError)) throw err;
       }

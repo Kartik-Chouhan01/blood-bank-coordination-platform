@@ -11,6 +11,7 @@ import { AppError } from '../../utils/AppError.js';
 import type { Actor } from '../../utils/actor.js';
 import { withTransaction } from '../../utils/mongoose.js';
 import { recordAudit } from '../audit/audit.service.js';
+import * as notify from '../notifications/notify.js';
 import { DonorProfileModel } from '../donors/donorProfile.model.js';
 import { HospitalModel } from '../hospitals/hospital.model.js';
 import { BloodRequestModel } from '../requests/bloodRequest.model.js';
@@ -162,4 +163,5 @@ export async function respondToOutreach(actor: Actor, id: string, input: Respond
       session,
     );
   });
+  if (input.response === 'INTERESTED') await notify.donorInterested(outreach._id);
 }

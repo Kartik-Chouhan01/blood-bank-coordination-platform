@@ -4,6 +4,7 @@ import { AppError } from '../utils/AppError.js';
 import { withTransaction } from '../utils/mongoose.js';
 import { AllocationModel } from '../modules/matching/allocation.model.js';
 import { releaseAllocationInSession } from '../modules/matching/allocationWorkflow.js';
+import { reservationReleased } from '../modules/notifications/notify.js';
 
 const BATCH_SIZE = 200;
 export const HOLD_EXPIRED_REASON = 'Reservation hold expired before the unit was issued';
@@ -33,6 +34,7 @@ export async function runReservationHoldSweep(now = new Date()): Promise<number>
           }),
         );
         released += 1;
+        await reservationReleased(allocation.requestId, allocation.unitId, HOLD_EXPIRED_REASON);
       } catch (err) {
         // Issued or released concurrently; nothing left to do for it.
         if (!(err instanceof AppError)) throw err;

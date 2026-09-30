@@ -17,6 +17,7 @@ import { BloodUnitModel } from '../inventory/bloodUnit.model.js';
 import { loadLookups } from '../inventory/inventory.presenter.js';
 import { assertCanManageBank, canManageBank } from '../inventory/unitTransitions.js';
 import { BloodRequestModel, type BloodRequest } from '../requests/bloodRequest.model.js';
+import * as notify from '../notifications/notify.js';
 import { AllocationModel } from './allocation.model.js';
 import {
   issueAllocationInSession,
@@ -136,6 +137,7 @@ export async function reserveUnits(actor: Actor, requestId: string, input: Reser
     }
     throw err;
   }
+  await notify.unitsReserved(requestId, input.unitIds.length);
 }
 
 async function findAllocation(actor: Actor, id: string) {
@@ -156,6 +158,7 @@ export async function releaseAllocation(actor: Actor, id: string, input: Release
 export async function issueAllocation(actor: Actor, id: string) {
   const allocation = await findAllocation(actor, id);
   await withTransaction((session) => issueAllocationInSession({ allocation, actor, session }));
+  await notify.unitIssued(allocation.requestId, allocation.unitId);
   return allocation.requestId.toString();
 }
 

@@ -30,6 +30,7 @@ import {
 } from '../matching/allocationWorkflow.js';
 import { countUsableStock, loadAllocationViews } from '../matching/allocations.service.js';
 import { autoOutreachIfShort } from '../matching/donorMatching.service.js';
+import * as notify from '../notifications/notify.js';
 import { nextSequence } from '../inventory/counter.model.js';
 import { BloodRequestModel, urgencyRankOf, type BloodRequest } from './bloodRequest.model.js';
 import { loadRequestLookups, toRequestDetail, toRequestSummary } from './request.presenter.js';
@@ -180,6 +181,8 @@ export async function createRequest(actor: Actor, input: CreateRequestInput) {
     }
   });
 
+  // After commit: staff hear about urgent work first, then donors are contacted if stock is short.
+  await notify.urgentRequestRaised(requestId);
   if (input.urgency === 'EMERGENCY') await autoOutreachIfShort(requestId);
   return getRequest(actor, requestId.toString());
 }
@@ -290,6 +293,7 @@ export async function escalateRequest(actor: Actor, id: string, input: EscalateR
     }
     return false;
   });
+  await notify.urgentRequestRaised(request._id, true);
   if (autoApproved) await autoOutreachIfShort(request._id);
   return getRequest(actor, id);
 }
@@ -315,6 +319,12 @@ export async function cancelRequest(actor: Actor, id: string, input: CancelReque
       session,
     });
   });
+  await notify.requestCancelled(
+    request._id,
+    isOwner ? 'HOSPITAL' : 'STAFF',
+    input.reason,
+    request.status !== 'PENDING',
+  );
   return getRequest(actor, id);
 }
 
@@ -347,6 +357,7 @@ export async function reviewRequest(actor: Actor, id: string, input: ReviewReque
       session,
     }),
   );
+  await notify.requestReviewed(request._id, input.reason);
   return getRequest(actor, id);
 }
 

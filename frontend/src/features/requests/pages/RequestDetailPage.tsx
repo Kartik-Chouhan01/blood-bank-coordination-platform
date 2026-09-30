@@ -234,7 +234,7 @@ export function RequestDetailPage({ area }: { area: 'hospital' | 'admin' }) {
       {justCreated && !notice && (
         <Alert tone="success">
           {request.status === 'APPROVED'
-            ? 'Emergency request raised and approved automatically. It is at the top of the blood-bank staff queue.'
+            ? 'Emergency request raised and approved automatically. Blood-bank staff have been alerted and it is at the top of their queue.'
             : 'Request raised. Blood-bank staff will review it shortly.'}
         </Alert>
       )}

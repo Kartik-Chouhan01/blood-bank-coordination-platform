@@ -153,8 +153,8 @@ export function RequestForm({ existing, submitLabel, onSubmit, onCancel }: Reque
           </div>
           {urgency === 'EMERGENCY' && (
             <Alert tone="warning" className="mt-3">
-              Use Emergency only for genuine emergencies. The request is approved immediately and
-              placed at the top of the blood-bank staff queue.
+              Use Emergency only for genuine emergencies. The request is approved immediately,
+              blood-bank staff are alerted, and it goes to the top of their queue.
             </Alert>
           )}
         </fieldset>

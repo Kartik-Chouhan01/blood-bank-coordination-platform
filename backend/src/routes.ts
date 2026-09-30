@@ -7,6 +7,7 @@ import { healthRouter } from './modules/health/health.routes.js';
 import { hospitalsRouter } from './modules/hospitals/hospitals.routes.js';
 import { bloodUnitsRouter, donationsRouter } from './modules/inventory/inventory.routes.js';
 import { donorOutreachRouter, matchingRouter } from './modules/matching/matching.routes.js';
+import { notificationsRouter } from './modules/notifications/notifications.routes.js';
 import { requestsRouter } from './modules/requests/requests.routes.js';
 import { usersRouter } from './modules/users/users.routes.js';
 
@@ -25,3 +26,4 @@ apiRouter.use('/blood-units', bloodUnitsRouter);
 apiRouter.use('/requests', requestsRouter);
 apiRouter.use('/matching', matchingRouter);
 apiRouter.use('/donor-outreach', donorOutreachRouter);
+apiRouter.use('/notifications', notificationsRouter);

@@ -25,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { homePathFor } from '@/constants/navigation';
 import { Logo } from '@/components/domain/Logo';
 import { EmailVerificationBanner } from '@/features/auth/components/EmailVerificationBanner';
+import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { cn } from '@/utils/cn';
 
 interface NavItem {
@@ -149,6 +150,7 @@ export function DashboardLayout() {
             <Logo to={homePath} />
           </div>
           <div className="ml-auto flex items-center gap-3">
+            <NotificationBell />
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-slate-900">{user.name}</p>
               <p className="text-xs text-slate-500">

@@ -16,6 +16,7 @@ import { AppError } from '../../utils/AppError.js';
 import { SYSTEM_ACTOR, type Actor } from '../../utils/actor.js';
 import { withTransaction } from '../../utils/mongoose.js';
 import { recordAudit } from '../audit/audit.service.js';
+import * as notify from '../notifications/notify.js';
 import { DonorProfileModel, cityKeyOf, type DonorProfile } from '../donors/donorProfile.model.js';
 import { HospitalModel } from '../hospitals/hospital.model.js';
 import { BloodRequestModel, type BloodRequest } from '../requests/bloodRequest.model.js';
@@ -235,9 +236,10 @@ async function contactDonors(actor: Actor, search: Search, donorIds: string[]) {
   }
 
   const now = new Date();
+  let created: Types.ObjectId[] = [];
   try {
     await withTransaction(async (session) => {
-      await DonorOutreachModel.insertMany(
+      const docs = await DonorOutreachModel.insertMany(
         chosen.map((d) => ({
           requestId: request._id,
           donorId: d!._id,
@@ -249,6 +251,7 @@ async function contactDonors(actor: Actor, search: Search, donorIds: string[]) {
         })),
         { session },
       );
+      created = docs.map((d) => d._id);
       await BloodRequestModel.updateOne(
         { _id: request._id },
         { $set: { outreachStatus: 'ACTIVE' } },
@@ -271,6 +274,7 @@ async function contactDonors(actor: Actor, search: Search, donorIds: string[]) {
     }
     throw err;
   }
+  await notify.donorsContacted(created);
   return chosen.length;
 }
 

@@ -12,6 +12,7 @@ import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage';
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { AccountPage } from '@/features/account/pages/AccountPage';
+import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage';
 import { AdminHomePage } from '@/features/dashboard/pages/HomePages';
 import { HospitalOverviewPage } from '@/features/hospital/pages/HospitalOverviewPage';
 import { HospitalProfilePage } from '@/features/hospital/pages/HospitalProfilePage';
@@ -80,6 +81,7 @@ export const routes: RouteObject[] = [
         ),
         children: [
           { path: 'account', element: <AccountPage /> },
+          { path: 'notifications', element: <NotificationsPage /> },
           {
             path: 'donor',
             element: <RequirePermission permission="donor:self" />,

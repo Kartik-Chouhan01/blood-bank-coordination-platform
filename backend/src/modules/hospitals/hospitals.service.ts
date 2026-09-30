@@ -10,6 +10,7 @@ import type { Actor } from '../../utils/actor.js';
 import { withTransaction } from '../../utils/mongoose.js';
 import { buildPaginationMeta, escapeRegex, pageToSkip } from '../../utils/pagination.js';
 import { recordAudit } from '../audit/audit.service.js';
+import { hospitalVerificationChanged } from '../notifications/notify.js';
 import { UserModel } from '../users/user.model.js';
 import { sendHospitalVerificationEmail } from './hospital.emails.js';
 import { HospitalModel, type Hospital } from './hospital.model.js';
@@ -203,5 +204,6 @@ export async function updateHospitalVerification(
       input.reason ?? null,
     );
   }
+  await hospitalVerificationChanged(after._id, input.status, input.reason ?? null);
   return toHospitalDetail(after, contact);
 }
