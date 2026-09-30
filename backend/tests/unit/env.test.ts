@@ -18,6 +18,14 @@ describe('parseEnv', () => {
     expect(() => parseEnv({})).toThrow(InvalidEnvironmentError);
   });
 
+  it('validates the time zone and the public stock thresholds', () => {
+    expect(parseEnv(base).APP_TIME_ZONE).toBe('Asia/Kolkata');
+    expect(() => parseEnv({ ...base, APP_TIME_ZONE: 'Mars/Olympus' })).toThrow(/APP_TIME_ZONE/);
+    expect(() =>
+      parseEnv({ ...base, PUBLIC_STOCK_LOW_BELOW: '10', PUBLIC_STOCK_GOOD_FROM: '10' }),
+    ).toThrow(/PUBLIC_STOCK_GOOD_FROM/);
+  });
+
   it('rejects an invalid port', () => {
     expect(() => parseEnv({ ...base, PORT: 'abc' })).toThrow(/PORT/);
   });

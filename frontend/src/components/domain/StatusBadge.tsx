@@ -1,5 +1,6 @@
 import type {
   AllocationStatus,
+  StockLevel,
   AvailabilityStatus,
   OutreachStatus,
   RequestStatus,
@@ -12,6 +13,7 @@ import {
   ALLOCATION_STATUS_PRESENTATION,
   AVAILABILITY_PRESENTATION,
   OUTREACH_STATUS_PRESENTATION,
+  STOCK_LEVEL_PRESENTATION,
   REQUEST_STATUS_PRESENTATION,
   UNIT_STATUS_PRESENTATION,
   URGENCY_PRESENTATION,
@@ -25,6 +27,7 @@ type StatusBadgeProps =
   | { kind: 'request'; value: RequestStatus }
   | { kind: 'allocation'; value: AllocationStatus }
   | { kind: 'outreach'; value: OutreachStatus }
+  | { kind: 'stockLevel'; value: StockLevel }
   | { kind: 'availability'; value: AvailabilityStatus }
   | { kind: 'verification'; value: VerificationStatus };
 
@@ -40,6 +43,8 @@ function presentationFor(props: StatusBadgeProps): StatusPresentation {
       return ALLOCATION_STATUS_PRESENTATION[props.value];
     case 'outreach':
       return OUTREACH_STATUS_PRESENTATION[props.value];
+    case 'stockLevel':
+      return STOCK_LEVEL_PRESENTATION[props.value];
     case 'availability':
       return AVAILABILITY_PRESENTATION[props.value];
     case 'verification':

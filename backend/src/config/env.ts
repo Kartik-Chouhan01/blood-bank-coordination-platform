@@ -103,6 +103,12 @@ const envSchema = z.object({
       },
       { message: 'must be an IANA time zone such as Asia/Kolkata' },
     ),
+  /**
+   * Public stock levels per blood group (red-cell units across the network): below LOW_BELOW is
+   * "Low", from GOOD_FROM up is "Good", anything between is "Moderate". Exact counts are never public.
+   */
+  PUBLIC_STOCK_LOW_BELOW: z.coerce.number().int().min(1).max(1000).default(5),
+  PUBLIC_STOCK_GOOD_FROM: z.coerce.number().int().min(2).max(5000).default(15),
   /** Notifications are deleted automatically this many days after they were created. */
   NOTIFICATION_RETENTION_DAYS: z.coerce.number().int().min(7).max(3650).default(180),
   /** Background jobs (expiry sweep). Disabled in tests; tests call jobs directly. */
@@ -127,6 +133,11 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
     throw new InvalidEnvironmentError(
       result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`),
     );
+  }
+  if (result.data.PUBLIC_STOCK_GOOD_FROM <= result.data.PUBLIC_STOCK_LOW_BELOW) {
+    throw new InvalidEnvironmentError([
+      'PUBLIC_STOCK_GOOD_FROM: must be greater than PUBLIC_STOCK_LOW_BELOW',
+    ]);
   }
   if (result.data.NODE_ENV === 'production') {
     const problems: string[] = [];

@@ -108,7 +108,7 @@ Envelope: `{ success: true, data, meta? }` or `{ success: false, message, errorC
 | `/api/matching`       | `requests/:id/inventory` (ranked candidates), `requests/:id/allocations` (reserve), `allocations/:id/release`, `allocations/:id/issue`, `requests/:id/donors` (search), `requests/:id/outreach` (list / contact) — **built** | STAFF, ADMIN (change: own bank / ADMIN)      |
 | `/api/donor-outreach` | `mine`, `:id/respond` — **built**                                                                                                                                                                                            | DONOR (own)                                  |
 | `/api/notifications`  | list (`?unread=true`, paginated), `unread-count`, `:id/read`, `read-all` — **built**                                                                                                                                         | owner (any signed-in user)                   |
-| `/api/dashboard`      | donor / hospital / admin / analytics / public-stats                                                                                                                                                                          | role-scoped                                  |
+| `/api/dashboard`      | `public-stats` (no sign-in; coarse levels, cached); `overview` (STAFF, ADMIN); `analytics` (`days` 7 / 30 / 90 / 365, optional `bloodBankId`; STAFF, ADMIN); `hospital` (HOSPITAL, own) — **built**                          | role-scoped                                  |
 | `/api/audit-logs`     | filtered, paginated, read-only list (action, record type, record id, actor, date range) — **built**                                                                                                                          | ADMIN                                        |
 | `/api/settings`       | get / patch (reason required, audited)                                                                                                                                                                                       | ADMIN                                        |
 
@@ -282,7 +282,38 @@ NO_RESPONSE when the request closes or passes required-by.
 | Donor answered "I can help"                       | The staff member who contacted donors (everyone for automatic) | HIGH unless routine · in-app                    |
 | Request for help                                  | The donor, on their chosen channels                            | CRITICAL for emergencies, else HIGH             |
 
-## 11. Security
+## 11. Dashboards & analytics
+
+`modules/dashboard` (read-only aggregations; pure helpers in `domain/analytics`).
+
+- **Public stock levels** — per blood group, usable red-cell units (PRBC + whole blood) across the
+  network become **Low / Moderate / Good** (`PUBLIC_STOCK_LOW_BELOW` 5, `PUBLIC_STOCK_GOOD_FROM`
+  15). Exact counts are never returned. Cached in memory for 5 minutes and sent with
+  `Cache-Control: public, max-age=300`. Shown on the landing page and, for the donor's own group,
+  on the donor overview.
+- **Staff overview** — open requests by urgency, pending review, overdue, reserved-awaiting-issue,
+  expiring soon, donor replies, pending verifications (hospital verification counts only for
+  administrators) and usable stock per group. Staff default to their own bank's stock;
+  administrators to the whole network; either can pick a bank.
+- **Analytics** — for 7 / 30 / 90 / 365 days, bucketed by day / week (Monday) / month in
+  `APP_TIME_ZONE`, empty buckets included. Requests are network-wide; units and donations follow
+  the bank filter. Definitions:
+  - _Fulfilment rate_ = fulfilled or completed ÷ closed, over requests raised in the period,
+    excluding rejections.
+  - _Time to fulfil_ = request creation → FULFILLED history entry; median reported (emergencies
+    separately).
+  - _Units issued_ = allocations issued in the period.
+  - _Lost to expiry_ = expired ÷ (issued + expired). Disposal of an already-expired unit is not
+    counted twice; other discards (e.g. failed testing) are reported separately.
+  - _Demand by group_ = units requested vs issued on requests raised in the period.
+- **Hospital figures** — the hospital's own last 90 days: raised, fulfilled, fulfilment rate,
+  median time to fulfil, units received, units awaiting its receipt confirmation.
+- **Charts** — small in-house SVG components (`components/charts`), no chart dependency: thin
+  marks, one y-axis, legend for two series plus direct end labels when they do not collide, a
+  pointer/keyboard tooltip, a chart/table switch on every chart, and a palette validated for CVD
+  and contrast on the card surface.
+
+## 12. Security
 
 helmet · CORS allowlist (wildcard refused in production) · per-IP rate limit (stricter on auth) ·
 a request guard rejecting `$`-prefixed or dotted keys anywhere in body/query, plus zod validation that
@@ -290,7 +321,7 @@ strips unknown keys (NoSQL-injection and mass-assignment guard) · 100 kb JSON l
 internal messages · request ids for support correlation · pino log redaction of credentials, tokens,
 email, phone and date of birth · secrets only from environment, validated at startup.
 
-## 12. Testing
+## 13. Testing
 
 - **Backend** — Vitest + Supertest against a real single-node replica set (mongodb-memory-server),
   so transactions and unique indexes behave exactly as in production. Unit tests for pure domain
@@ -298,7 +329,7 @@ email, phone and date of birth · secrets only from environment, validated at st
 - **Frontend** — Vitest + React Testing Library (jsdom).
 - **Shared** — Vitest for enum helpers.
 
-## 13. Phases
+## 14. Phases
 
 | #   | Phase                                                                                  | Status   |
 | --- | -------------------------------------------------------------------------------------- | -------- |
@@ -310,8 +341,8 @@ email, phone and date of birth · secrets only from environment, validated at st
 | 6   | Requests lifecycle                                                                     | **done** |
 | 7   | Matching: compatibility, allocation, donor outreach                                    | **done** |
 | 8   | Notifications                                                                          | **done** |
-| 9   | Dashboards & analytics                                                                 | next     |
-| 10  | Security & audit review                                                                |          |
+| 9   | Dashboards & analytics                                                                 | **done** |
+| 10  | Security & audit review                                                                | next     |
 | 11  | Test hardening, seed data, OpenAPI docs, deployment config                             |          |
 
 ## Changes from the original specification
@@ -456,3 +487,15 @@ Approved deviations, with rationale. New items are appended as phases land.
 | A73 | Notifications expire after `NOTIFICATION_RETENTION_DAYS` (TTL index); message dates use `APP_TIME_ZONE`.                                              | Bounded growth; readable times for users instead of UTC.                                             |
 | A74 | Unread badge by 60-second polling (visible tabs only) instead of WebSockets/SSE.                                                                      | Simple and robust behind any proxy; a push channel can replace it without API changes.               |
 | A75 | A57 reversed: the UI now says staff are alerted for emergencies, because they are.                                                                    | Wording follows what the system actually does.                                                       |
+
+### Added during Phase 9
+
+| #   | Change                                                                                                                                                              | Why                                                                                                  |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| A76 | Product renamed **DigiRakt**; the name lives in `@bbms/shared` (`APP_NAME`) and is used by the web app and in email subjects/footers.                               | One source of truth for branding across UI and email.                                                |
+| A77 | Public stock is **levels only** (Low / Moderate / Good) for red-cell components, network-wide, cached 5 minutes (W8 implemented).                                   | Exact counts are scrapeable and misread; red cells are what "is my group needed?" means to donors.   |
+| A78 | Analytics metrics have written definitions (fulfilment rate, time to fulfil, expiry wastage); expiry wastage uses expiry only, other discards are shown separately. | Numbers that people compare must mean the same thing every time; expiry is the loss a bank controls. |
+| A79 | Requests are always analysed network-wide; units and donations follow the bank filter.                                                                              | Requests are not bound to a bank; mixing scopes silently would mislead.                              |
+| A80 | Buckets are calendar days/weeks/months in `APP_TIME_ZONE`, with empty periods shown as zero.                                                                        | A day in India should not split at 05:30; gaps must look like zero, not missing.                     |
+| A81 | Charts are built in-house as accessible SVG (keyboard tooltips, table view, validated palette) instead of adding a chart library.                                   | Two chart types did not justify a dependency; accessibility is under our control.                    |
+| A82 | The staff home now leads with live KPIs and stock by group; hospitals see their own 90-day figures; donors see their own group's stock level.                       | Each role's first screen answers "what needs my attention?"                                          |

@@ -1,4 +1,4 @@
-# LifeLink — Blood Bank Management & Emergency Blood Coordination
+# DigiRakt — Blood Bank Management & Emergency Blood Coordination
 
 > Connecting blood donors, hospitals, and blood banks when every unit matters.
 
@@ -22,8 +22,9 @@ coordinating hospitals, blood banks, administrators and potential donors.
 | 6     | Blood requests: lifecycle, urgency, staff review queue, expiry                                              | ✅ Done |
 | 7     | Matching: compatibility, unit allocation, donor outreach                                                    | ✅ Done |
 | 8     | Notifications: in-app and email, header bell, notifications page                                            | ✅ Done |
-| 9     | Dashboards & analytics                                                                                      | ⏭ Next  |
-| 10–11 | Security review, testing & deployment                                                                       | Planned |
+| 9     | Dashboards & analytics: staff overview, analytics, hospital figures, public stock levels                    | ✅ Done |
+| 10    | Security & audit review                                                                                     | ⏭ Next  |
+| 11    | Test hardening, seed data, OpenAPI docs, deployment config                                                  | Planned |
 
 The full design — entities, APIs, state machines, matching algorithms and **every deliberate change
 from the original specification** — is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

@@ -3,6 +3,7 @@ import { CircleCheck, Circle, ArrowRight } from 'lucide-react';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { Alert } from '@/components/ui/Alert';
 import { donorOutreachApi } from '@/features/matching/api';
+import { OwnGroupStockLevel } from '@/features/dashboard/components/PublicStockLevels';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { DetailList, PageHeader } from '@/components/ui/PageHeader';
@@ -50,6 +51,7 @@ export function DonorOverviewPage() {
         description="Thank you for being willing to help. Here's your donor summary."
       />
       <PendingHelpRequests />
+      <OwnGroupStockLevel bloodGroup={donor.bloodGroup} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">

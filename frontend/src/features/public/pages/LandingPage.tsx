@@ -16,6 +16,7 @@ import { buttonClasses } from '@/components/ui/buttonStyles';
 import { Card } from '@/components/ui/Card';
 import { MedicalDisclaimer } from '@/components/domain/MedicalDisclaimer';
 import { StatusBadge } from '@/components/domain/StatusBadge';
+import { PublicStockLevels } from '@/features/dashboard/components/PublicStockLevels';
 import { WORKFLOW_STEPS } from '../content';
 
 function RoleCard({
@@ -136,6 +137,16 @@ export function LandingPage() {
             </ButtonLink>
           </div>
         </div>
+      </section>
+
+      <section aria-labelledby="stock-heading" className="mx-auto max-w-6xl px-4 pt-12 sm:px-6">
+        <h2 id="stock-heading" className="text-2xl font-bold text-slate-900">
+          Blood stock right now
+        </h2>
+        <p className="mt-1 mb-4 text-sm text-slate-600">
+          If your group is low, a donation now makes the biggest difference.
+        </p>
+        <PublicStockLevels />
       </section>
 
       <section aria-labelledby="roles-heading" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">

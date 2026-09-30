@@ -55,6 +55,8 @@ allocationSchema.index(
   { unique: true, partialFilterExpression: { status: { $in: ['RESERVED', 'ISSUED'] } } },
 );
 allocationSchema.index({ requestId: 1, status: 1 });
+// Analytics: units issued within a period.
+allocationSchema.index({ issuedAt: 1 });
 // Hold-release job.
 allocationSchema.index({ status: 1, holdUntil: 1 });
 

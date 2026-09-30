@@ -5,6 +5,7 @@ import {
   Bell,
   Boxes,
   Building2,
+  ChartLine,
   Droplet,
   Hospital,
   ScrollText,
@@ -64,6 +65,7 @@ function navItemsFor(homePath: string): NavItem[] {
     { to: '/admin/donations', label: 'Donations', icon: Droplet, permission: 'inventory:read' },
     { to: '/hospital/requests', label: 'Blood requests', icon: Send, permission: 'hospital:self' },
     { to: '/admin/requests', label: 'Requests', icon: Send, permission: 'requests:read' },
+    { to: '/admin/analytics', label: 'Analytics', icon: ChartLine, permission: 'analytics:read' },
     { to: '/admin/donors', label: 'Donors', icon: HeartHandshake, permission: 'donors:read' },
     { to: '/admin/hospitals', label: 'Hospitals', icon: Hospital, permission: 'hospitals:read' },
     {

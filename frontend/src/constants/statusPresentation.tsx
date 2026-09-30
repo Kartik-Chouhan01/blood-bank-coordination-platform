@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import type {
   AllocationStatus,
+  StockLevel,
   AvailabilityStatus,
   OutreachStatus,
   RequestStatus,
@@ -81,6 +82,13 @@ export const OUTREACH_STATUS_PRESENTATION: Record<OutreachStatus, StatusPresenta
   DECLINED: { label: 'Declined', tone: 'muted', icon: icon(ThumbsDown) },
   NO_RESPONSE: { label: 'No response', tone: 'muted', icon: icon(Hourglass) },
   DONATED: { label: 'Donated', tone: 'success', icon: icon(CircleCheck) },
+};
+
+/** Public stock levels: status semantics, always icon + label. */
+export const STOCK_LEVEL_PRESENTATION: Record<StockLevel, StatusPresentation> = {
+  LOW: { label: 'Low', tone: 'critical', icon: icon(TriangleAlert) },
+  MODERATE: { label: 'Moderate', tone: 'warning', icon: icon(CircleDashed) },
+  GOOD: { label: 'Good', tone: 'success', icon: icon(CircleCheck) },
 };
 
 export const AVAILABILITY_PRESENTATION: Record<AvailabilityStatus, StatusPresentation> = {

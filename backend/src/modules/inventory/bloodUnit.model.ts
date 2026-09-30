@@ -83,5 +83,7 @@ bloodUnitSchema.index({ bloodBankId: 1, status: 1, expiryDate: 1 });
 bloodUnitSchema.index({ donationId: 1 });
 // Expiry sweep.
 bloodUnitSchema.index({ expiryDate: 1, status: 1 });
+// Analytics: losses (expired / discarded) within a period.
+bloodUnitSchema.index({ 'statusHistory.to': 1, 'statusHistory.at': 1 });
 
 export const BloodUnitModel = model<BloodUnit>('BloodUnit', bloodUnitSchema);

@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
 import {
   ArrowRight,
   Boxes,
+  ChartLine,
+  Siren,
   Building2,
   HeartHandshake,
   Hospital,
@@ -16,9 +19,12 @@ import { useAuth, usePermission } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { hospitalsApi } from '@/features/organisations/api';
-import { unitsApi } from '@/features/inventory/api';
-import { requestsApi } from '@/features/requests/api';
+import { ErrorState } from '@/components/ui/States';
+import { ChartCard } from '@/components/charts/ChartCard';
+import { ColumnChart } from '@/components/charts/ColumnChart';
+import { StatTile } from '@/components/charts/StatTile';
+import { BankScopeSelect } from '@/features/inventory/components/BankScopeSelect';
+import { dashboardApi } from '../api';
 
 const firstName = (name: string) => name.split(' ')[0];
 
@@ -63,26 +69,16 @@ export function AdminHomePage() {
   const canReadAudit = usePermission('audit:read');
   const canReadInventory = usePermission('inventory:read');
   const canReadRequests = usePermission('requests:read');
-  const requestStats = useApiQuery(
-    () => (canReadRequests ? requestsApi.stats() : Promise.resolve(null)),
-    [canReadRequests],
-  );
-  const ownBank = user?.profile?.kind === 'STAFF' ? user.profile.bloodBankId : undefined;
-  const stock = useApiQuery(
-    () => (canReadInventory ? unitsApi.summary(ownBank) : Promise.resolve(null)),
-    [canReadInventory, ownBank],
-  );
-  const pending = useApiQuery(
-    () =>
-      canReadHospitals
-        ? hospitalsApi.list({ verificationStatus: 'PENDING', limit: 1 }).then((p) => p.meta.total)
-        : Promise.resolve(0),
-    [canReadHospitals],
+  const canReadAnalytics = usePermission('analytics:read');
+  const [bankId, setBankId] = useState<string>();
+  const overview = useApiQuery(
+    () => (canReadInventory ? dashboardApi.overview(bankId) : Promise.resolve(null)),
+    [canReadInventory, bankId],
   );
   if (!user) return null;
-  const pendingCount = pending.data ?? 0;
-  const expiringSoon = stock.data?.expiringSoon ?? 0;
-  const availableUnits = stock.data?.byStatus.AVAILABLE ?? 0;
+  const o = overview.data;
+  const pendingCount = o?.verification.hospitalsPending ?? 0;
+  const emergencies = o?.requests.openByUrgency.EMERGENCY ?? 0;
 
   return (
     <>
@@ -90,19 +86,71 @@ export function AdminHomePage() {
         title={`Welcome, ${firstName(user.name)}`}
         description={`${ROLE_LABELS[user.role]} console`}
       />
+      {overview.error && <ErrorState error={overview.error} onRetry={overview.refetch} />}
+      {o && (
+        <>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <StatTile
+              label="Open requests"
+              value={o.requests.open}
+              hint={`${o.requests.pendingReview} awaiting review · ${o.requests.overdue} overdue`}
+              status={
+                emergencies > 0 ? (
+                  <Badge tone="critical" icon={<Siren className="size-3.5" aria-hidden />}>
+                    {emergencies} emergency
+                  </Badge>
+                ) : undefined
+              }
+            />
+            <StatTile
+              label="Reserved, awaiting issue"
+              value={o.awaitingIssue}
+              hint={o.bloodBank ? `At ${o.bloodBank.name}` : 'All blood banks'}
+            />
+            <StatTile
+              label="Expiring soon"
+              value={o.expiringSoon}
+              hint={`Usable units expiring within ${o.expiryWarningDays} days`}
+            />
+            <StatTile
+              label="Donors ready to help"
+              value={o.outreach.interested}
+              hint={`${o.outreach.awaitingReply} contacted, awaiting a reply`}
+            />
+          </div>
+          <ChartCard
+            title="Usable stock by blood group"
+            description={
+              <span className="inline-flex flex-wrap items-center gap-2">
+                Available, tested and in date, all components.
+                <BankScopeSelect
+                  value={bankId ?? o.bloodBank?.id ?? ''}
+                  onChange={(id) => setBankId(id)}
+                />
+              </span>
+            }
+            table={{
+              columns: ['Blood group', 'Units'],
+              rows: o.stockByGroup.map((g) => [g.bloodGroup, g.units]),
+            }}
+          >
+            <ColumnChart
+              categories={o.stockByGroup.map((g) => g.bloodGroup)}
+              series={[{ label: 'Units', values: o.stockByGroup.map((g) => g.units), slot: 0 }]}
+              summary={`Usable units per blood group at ${o.bloodBank?.name ?? 'all blood banks'}`}
+              labelValues
+            />
+          </ChartCard>
+        </>
+      )}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {canReadRequests && (
           <ConsoleCard
             to="/admin/requests"
             icon={Send}
             title="Blood requests"
-            body={`${requestStats.data?.open ?? 0} open, ${requestStats.data?.pendingReview ?? 0} awaiting review.`}
+            body="Review, allocate units and contact potential donors."
             cta="Open request queue"
-            badge={
-              requestStats.data?.openEmergency
-                ? `${requestStats.data.openEmergency} emergency`
-                : undefined
-            }
           />
         )}
         {canReadInventory && (
@@ -110,9 +158,17 @@ export function AdminHomePage() {
             to="/admin/inventory"
             icon={Boxes}
             title="Blood inventory"
-            body={`${availableUnits} units available${ownBank ? ' at your blood bank' : ''}. Track testing, expiry and disposal.`}
+            body="Track testing, expiry and disposal for every unit."
             cta="Open inventory"
-            badge={expiringSoon ? `${expiringSoon} expiring soon` : undefined}
+          />
+        )}
+        {canReadAnalytics && (
+          <ConsoleCard
+            to="/admin/analytics"
+            icon={ChartLine}
+            title="Analytics"
+            body="Demand, fulfilment times, issues and expiry wastage over time."
+            cta="Open analytics"
           />
         )}
         {canReadDonors && (

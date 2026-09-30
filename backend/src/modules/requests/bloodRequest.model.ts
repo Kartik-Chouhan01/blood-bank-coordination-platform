@@ -100,6 +100,9 @@ bloodRequestSchema.index({ hospitalId: 1, createdAt: -1 });
 bloodRequestSchema.index({ bloodGroup: 1, componentType: 1, status: 1 });
 // Expiry sweep.
 bloodRequestSchema.index({ requiredBy: 1, status: 1 });
+// Analytics: requests fulfilled within a period.
+bloodRequestSchema.index({ 'statusHistory.to': 1, 'statusHistory.at': 1 });
+bloodRequestSchema.index({ createdAt: -1 });
 
 export const BloodRequestModel = model<BloodRequest>('BloodRequest', bloodRequestSchema);
 

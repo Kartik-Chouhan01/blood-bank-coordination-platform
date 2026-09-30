@@ -23,6 +23,7 @@ export const PERMISSIONS = {
   'requests:read': ['BLOOD_BANK_STAFF', 'ADMIN'],
   'requests:review': ['BLOOD_BANK_STAFF', 'ADMIN'],
   'matching:allocate': ['BLOOD_BANK_STAFF', 'ADMIN'],
+  'analytics:read': ['BLOOD_BANK_STAFF', 'ADMIN'],
   'audit:read': ['ADMIN'],
   'settings:manage': ['ADMIN'],
   'workflow:override': ['ADMIN'],

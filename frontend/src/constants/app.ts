@@ -1,4 +1,4 @@
-export const APP_NAME = 'LifeLink';
+export { APP_NAME } from '@bbms/shared';
 export const APP_TAGLINE =
   'Connecting blood donors, hospitals, and blood banks when every unit matters.';
 

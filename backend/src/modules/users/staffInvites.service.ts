@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { Types } from 'mongoose';
 import {
+  APP_NAME,
   ERROR_CODES,
   ROLE_LABELS,
   type AcceptInviteInput,
@@ -34,7 +35,7 @@ async function sendInvite(
   await sendMail({
     to: user.email,
     template: 'ACCOUNT_INVITE',
-    subject: 'You have been invited to the blood coordination platform',
+    subject: `You have been invited to ${APP_NAME}`,
     text:
       `Hi ${user.name},\n\nYou have been invited as ${ROLE_LABELS[user.role]}` +
       `${bankName ? ` at ${bankName}` : ''}.\n\nChoose a password to activate your account ` +

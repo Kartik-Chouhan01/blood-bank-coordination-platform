@@ -12,6 +12,9 @@ import { MedicalDisclaimer } from '@/components/domain/MedicalDisclaimer';
 import { formatDate } from '@/utils/format';
 import { hospitalSelfApi } from '@/features/organisations/api';
 import { requestsApi } from '@/features/requests/api';
+import { dashboardApi } from '@/features/dashboard/api';
+import { StatTile } from '@/components/charts/StatTile';
+import { formatHours, formatPercent } from '@/components/charts/chartTheme';
 import { ButtonLink } from '@/components/ui/Button';
 import type { HospitalSelfView } from '@bbms/shared';
 
@@ -98,6 +101,45 @@ function RequestsCard({ verified }: { verified: boolean }) {
   );
 }
 
+/** The hospital's own recent performance (verified hospitals only). */
+function RecentFigures() {
+  const { data } = useApiQuery(() => dashboardApi.hospital());
+  if (!data) return null;
+  return (
+    <section aria-labelledby="recent-heading">
+      <h2 id="recent-heading" className="mb-3 text-sm font-semibold text-slate-700">
+        Last {data.days} days
+      </h2>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatTile
+          label="Requests raised"
+          value={data.requestsRaised}
+          hint={`${data.requestsFulfilled} fulfilled`}
+        />
+        <StatTile
+          label="Fulfilment rate"
+          value={formatPercent(data.fulfilmentRate)}
+          hint="Of your closed requests (rejections excluded)"
+        />
+        <StatTile
+          label="Median time to fulfil"
+          value={formatHours(data.medianHoursToFulfil)}
+          hint="From raising to all units issued"
+        />
+        <StatTile
+          label="Units received"
+          value={data.unitsReceived}
+          hint={
+            data.awaitingReceipt
+              ? `${data.awaitingReceipt} issued, awaiting your confirmation`
+              : 'Nothing awaiting confirmation'
+          }
+        />
+      </div>
+    </section>
+  );
+}
+
 export function HospitalOverviewPage() {
   const { user } = useAuth();
   const { data: hospital, error, isLoading, refetch } = useApiQuery(hospitalSelfApi.get);
@@ -133,6 +175,7 @@ export function HospitalOverviewPage() {
         </Card>
         <RequestsCard verified={hospital.verificationStatus === 'VERIFIED'} />
       </div>
+      {hospital.verificationStatus === 'VERIFIED' && <RecentFigures />}
       <MedicalDisclaimer />
     </>
   );

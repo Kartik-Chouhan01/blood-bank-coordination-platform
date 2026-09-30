@@ -1,10 +1,11 @@
 import { Types } from 'mongoose';
-import type {
-  ListNotificationsQuery,
-  NotificationPriority,
-  NotificationType,
-  NotificationView,
-  UnreadCount,
+import {
+  APP_NAME,
+  type ListNotificationsQuery,
+  type NotificationPriority,
+  type NotificationType,
+  type NotificationView,
+  type UnreadCount,
 } from '@bbms/shared';
 import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
@@ -43,7 +44,7 @@ function emailText(recipient: Recipient, content: NotificationContent) {
   return (
     `Hi ${recipient.name},\n\n${content.message}\n\n` +
     (content.link ? `Open: ${env.APP_URL}${content.link}\n\n` : '') +
-    'You receive this because of your role on the blood coordination platform.'
+    `You receive this because of your role on ${APP_NAME}.`
   );
 }
 

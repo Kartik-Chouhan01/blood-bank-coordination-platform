@@ -14,6 +14,7 @@ import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { AccountPage } from '@/features/account/pages/AccountPage';
 import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage';
 import { AdminHomePage } from '@/features/dashboard/pages/HomePages';
+import { AnalyticsPage } from '@/features/dashboard/pages/AnalyticsPage';
 import { HospitalOverviewPage } from '@/features/hospital/pages/HospitalOverviewPage';
 import { HospitalProfilePage } from '@/features/hospital/pages/HospitalProfilePage';
 import { HospitalsPage } from '@/features/admin/pages/HospitalsPage';
@@ -158,6 +159,11 @@ export const routes: RouteObject[] = [
                 path: 'blood-banks',
                 element: <RequirePermission permission="bloodBanks:read" />,
                 children: [{ index: true, element: <BloodBanksPage /> }],
+              },
+              {
+                path: 'analytics',
+                element: <RequirePermission permission="analytics:read" />,
+                children: [{ index: true, element: <AnalyticsPage /> }],
               },
               {
                 path: 'audit-logs',
