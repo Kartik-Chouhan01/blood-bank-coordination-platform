@@ -2,6 +2,7 @@
  * Creates the first administrator (there is deliberately no public way to register as ADMIN).
  *
  *   npm run create-admin -w @bbms/backend -- --email admin@example.org --name "Site Admin"
+ *   node dist/cli/create-admin.js --email admin@example.org --name "Site Admin"   (built image)
  *
  * The password is read from ADMIN_PASSWORD, or generated and printed once.
  */
@@ -9,12 +10,12 @@ import { parseArgs } from 'node:util';
 import { randomBytes } from 'node:crypto';
 import { Types } from 'mongoose';
 import { emailSchema, passwordSchema, personNameSchema } from '@bbms/shared';
-import { env } from '../src/config/env.js';
-import { connectDatabase, disconnectDatabase } from '../src/config/db.js';
-import { UserModel } from '../src/modules/users/user.model.js';
-import { hashPassword } from '../src/modules/auth/password.js';
-import { recordAudit } from '../src/modules/audit/audit.service.js';
-import { SYSTEM_ACTOR } from '../src/utils/actor.js';
+import { env } from '../config/env.js';
+import { connectDatabase, disconnectDatabase } from '../config/db.js';
+import { UserModel } from '../modules/users/user.model.js';
+import { hashPassword } from '../modules/auth/password.js';
+import { recordAudit } from '../modules/audit/audit.service.js';
+import { SYSTEM_ACTOR } from '../utils/actor.js';
 
 const { values } = parseArgs({
   options: { email: { type: 'string' }, name: { type: 'string' }, phone: { type: 'string' } },

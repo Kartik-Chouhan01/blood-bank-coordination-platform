@@ -1,5 +1,5 @@
 import type { Server } from 'node:http';
-import { env } from './config/env.js';
+import { env, isProduction } from './config/env.js';
 import { logger } from './config/logger.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { createApp } from './app.js';
@@ -21,6 +21,11 @@ async function start() {
     process.exit(1);
   }
 
+  if (isProduction && env.MAIL_TRANSPORT !== 'smtp') {
+    logger.warn(
+      'MAIL_TRANSPORT is not smtp: verification, reset and notification emails will not be sent.',
+    );
+  }
   await refreshSettings();
   const settingsTimer = setInterval(() => {
     refreshSettings().catch((err: unknown) => logger.error({ err }, 'Could not refresh settings'));

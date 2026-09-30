@@ -2,7 +2,8 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { env } from './config/env.js';
+import { apiDocsEnabled, env } from './config/env.js';
+import { buildOpenApiDocument } from './docs/openapi.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { createRateLimiter } from './middleware/rateLimits.js';
 import { rejectOperatorKeys } from './middleware/rejectOperatorKeys.js';
@@ -29,6 +30,15 @@ export function createApp() {
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());
   app.use(rejectOperatorKeys);
+
+  if (apiDocsEnabled) {
+    // Built once, on first request; the route table does not change at runtime.
+    let document: object | undefined;
+    app.get('/api/docs/openapi.json', (_req, res) => {
+      document ??= buildOpenApiDocument(env.APP_VERSION);
+      res.json(document);
+    });
+  }
 
   app.use(
     '/api',

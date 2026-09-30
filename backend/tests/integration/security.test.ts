@@ -1,9 +1,8 @@
 import request from 'supertest';
 import { Types } from 'mongoose';
-import type { Router } from 'express';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
-import { API_MOUNTS } from '../../src/routes.js';
+import { listRoutes, type HttpMethod } from '../../src/utils/routeTable.js';
 import { AuditLogModel } from '../../src/modules/audit/auditLog.model.js';
 import { BloodBankModel } from '../../src/modules/bloodBanks/bloodBank.model.js';
 import { useTestDatabase } from '../helpers/testDb.js';
@@ -13,26 +12,18 @@ useTestDatabase();
 useMailbox();
 const app = createApp();
 
-type Method = 'get' | 'post' | 'put' | 'patch' | 'delete';
 interface Route {
-  method: Method;
+  method: HttpMethod;
   path: string;
 }
 
-/** Every route registered on every feature router, with path parameters filled in. */
+/** Every route registered on every feature router (the shared route table), ids filled in. */
 function allRoutes(): Route[] {
   const id = new Types.ObjectId().toString();
-  return API_MOUNTS.flatMap(([mount, router]) =>
-    (router as Router).stack.flatMap((layer) => {
-      const route = layer.route as
-        { path: string; methods: Partial<Record<Method, boolean>> } | undefined;
-      if (!route) return [];
-      return (Object.keys(route.methods) as Method[]).map((method) => ({
-        method,
-        path: `/api${mount}${route.path}`.replace(/:[a-zA-Z]+/g, id).replace(/\/$/, ''),
-      }));
-    }),
-  );
+  return listRoutes().map((r) => ({
+    method: r.method,
+    path: `/api${r.path}`.replace(/:[a-zA-Z]+/g, id),
+  }));
 }
 
 const key = (r: Route) => `${r.method.toUpperCase()} ${r.path.replace(/[a-f0-9]{24}/g, ':id')}`;

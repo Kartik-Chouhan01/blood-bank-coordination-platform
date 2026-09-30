@@ -24,7 +24,7 @@ coordinating hospitals, blood banks, administrators and potential donors.
 | 8     | Notifications: in-app and email, header bell, notifications page                                            | ✅ Done |
 | 9     | Dashboards & analytics: staff overview, analytics, hospital figures, public stock levels                    | ✅ Done |
 | 10    | Security & audit review, system settings, account deletion                                                  | ✅ Done |
-| 11    | Test hardening, seed data, OpenAPI docs, deployment config                                                  | ⏭ Next  |
+| 11    | Test hardening, seed data, OpenAPI docs, deployment config                                                  | ✅ Done |
 
 The full design — entities, APIs, state machines, matching algorithms and **every deliberate change
 from the original specification** — is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The security
@@ -46,7 +46,9 @@ review (threat model, controls, findings) is in [docs/SECURITY.md](docs/SECURITY
 packages/shared   Domain enums, error codes, API contract types shared by backend and frontend
 backend/          REST API — feature modules under src/modules/<name>/
 frontend/         React SPA — feature folders under src/features/<name>/
-docs/             Architecture and design decisions
+deploy/           nginx config (SPA + /api proxy + security headers), production env template
+docs/             Architecture, security review, deployment guide, generated OpenAPI document
+.github/          CI (typecheck, lint, tests with coverage, audit, container builds) and Dependabot
 ```
 
 ## Getting started
@@ -96,43 +98,74 @@ hospitals register themselves at http://localhost:5173/register, and administrat
 hospitals under **Hospitals**. In development,
 verification and password-reset emails are printed to the API terminal — open the link from there.
 
+### Demo data (optional)
+
+To explore every screen with realistic data instead of starting empty:
+
+```bash
+npm run seed -w @bbms/backend
+```
+
+It creates two blood banks, staff, four hospitals, 48 donors, tested stock, requests at every stage
+(pending, partly allocated, awaiting receipt, completed, rejected, cancelled, an emergency),
+donor outreach, notifications and 60 days of history for the analytics page — all through the
+application's own services. Accounts are printed at the end (`admin@digirakt.test`,
+`staff.pune@digirakt.test`, `citygeneral@digirakt.test`, `donor01@digirakt.test`, …) and share
+one password (`SEED_PASSWORD`, or a generated one shown once). It only runs on an empty database;
+use `-- --reset` to replace existing data, and it refuses to run in production.
+
 ## Scripts (run from the repository root)
 
-| Command                           | What it does                                                                     |
-| --------------------------------- | -------------------------------------------------------------------------------- |
-| `npm run dev`                     | Builds the shared package, then runs API (:5000) and web (:5173) with hot reload |
-| `npm run dev:db`                  | Starts the local MongoDB replica set                                             |
-| `npm test`                        | Runs all test suites (shared, backend, frontend)                                 |
-| `npm run build`                   | Production build of all packages                                                 |
-| `npm run typecheck`               | Type-checks every package                                                        |
-| `npm run lint` / `npm run format` | ESLint / Prettier                                                                |
+| Command                                 | What it does                                                                     |
+| --------------------------------------- | -------------------------------------------------------------------------------- |
+| `npm run dev`                           | Builds the shared package, then runs API (:5000) and web (:5173) with hot reload |
+| `npm run dev:db`                        | Starts the local MongoDB replica set                                             |
+| `npm test`                              | Runs all test suites (shared, backend, frontend)                                 |
+| `npm run test:coverage`                 | Tests with coverage reports and minimum thresholds (as in CI)                    |
+| `npm run seed -w @bbms/backend`         | Demo data (development only; `-- --reset` replaces existing data)                |
+| `npm run docs:openapi -w @bbms/backend` | Regenerates `docs/openapi.json` from the route table                             |
+| `npm run create-admin -w @bbms/backend` | Creates an administrator (`-- --email … --name …`)                               |
+| `npm run build`                         | Production build of all packages                                                 |
+| `npm run typecheck`                     | Type-checks every package                                                        |
+| `npm run lint` / `npm run format`       | ESLint / Prettier                                                                |
 
 ## Environment variables
 
 Backend (`backend/.env`, see [backend/.env.example](backend/.env.example)):
 
-| Variable                                  | Required | Default                 | Purpose                                                        |
-| ----------------------------------------- | -------- | ----------------------- | -------------------------------------------------------------- |
-| `MONGODB_URI`                             | ✅       | —                       | Replica-set connection string                                  |
-| `NODE_ENV`                                |          | `development`           | `development` \| `test` \| `production`                        |
-| `PORT`                                    |          | `5000`                  | API port                                                       |
-| `LOG_LEVEL`                               |          | `info`                  | pino log level                                                 |
-| `CORS_ORIGINS`                            |          | `http://localhost:5173` | Comma-separated allowed browser origins (no `*` in production) |
-| `TRUST_PROXY`                             |          | `0`                     | Number of reverse proxies in front of the API                  |
-| `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX` |          | 15 min / 1000           | General per-IP rate limit                                      |
-| `AUTH_RATE_LIMIT_MAX`                     |          | `20`                    | Per-IP limit (per 15 min) on login, registration, reset        |
-| `JWT_ACCESS_SECRET`                       | ✅       | —                       | ≥ 32 random characters; placeholders are refused in production |
-| `JWT_ACCESS_TTL_SECONDS`                  |          | `900`                   | Access-token lifetime                                          |
-| `REFRESH_TOKEN_TTL_DAYS`                  |          | `7`                     | Refresh-session lifetime                                       |
-| `BCRYPT_ROUNDS`                           |          | `12`                    | Password hashing cost (≥ 10 in production)                     |
-| `APP_URL`                                 |          | `http://localhost:5173` | Web app URL used in email links                                |
-| `COOKIE_SAMESITE`                         |          | `strict`                | `strict` for same-site deployments; `none` only if cross-site  |
-| `DONOR_CONTACT_INTERVAL_DAYS`             |          | `90`                    | Days after a donation before the system may contact a donor    |
-| `SHELF_LIFE_DAYS`                         |          | reference values        | Per-component overrides, e.g. `PLATELETS=7,PRBC=35`            |
-| `EXPIRY_WARNING_DAYS`                     |          | `3`                     | "Expiring soon" window                                         |
-| `EXPIRY_SWEEP_INTERVAL_MINUTES`           |          | `5`                     | How often expired units are marked                             |
-| `JOBS_ENABLED`                            |          | `true`                  | Background jobs on/off                                         |
-| `REQUEST_EXPIRY_GRACE_HOURS`              |          | `2`                     | Hours an overdue request stays open before it expires          |
+| Variable                                           | Required | Default                 | Purpose                                                        |
+| -------------------------------------------------- | -------- | ----------------------- | -------------------------------------------------------------- |
+| `MONGODB_URI`                                      | ✅       | —                       | Replica-set connection string                                  |
+| `NODE_ENV`                                         |          | `development`           | `development` \| `test` \| `production`                        |
+| `PORT`                                             |          | `5000`                  | API port                                                       |
+| `LOG_LEVEL`                                        |          | `info`                  | pino log level                                                 |
+| `CORS_ORIGINS`                                     |          | `http://localhost:5173` | Comma-separated allowed browser origins (no `*` in production) |
+| `TRUST_PROXY`                                      |          | `0`                     | Number of reverse proxies in front of the API                  |
+| `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX`          |          | 15 min / 1000           | General per-IP rate limit                                      |
+| `AUTH_RATE_LIMIT_MAX`                              |          | `20`                    | Per-IP limit (per 15 min) on login, registration, reset        |
+| `JWT_ACCESS_SECRET`                                | ✅       | —                       | ≥ 32 random characters; placeholders are refused in production |
+| `JWT_ACCESS_TTL_SECONDS`                           |          | `900`                   | Access-token lifetime                                          |
+| `REFRESH_TOKEN_TTL_DAYS`                           |          | `7`                     | Refresh-session lifetime                                       |
+| `BCRYPT_ROUNDS`                                    |          | `12`                    | Password hashing cost (≥ 10 in production)                     |
+| `APP_URL`                                          |          | `http://localhost:5173` | Web app URL used in email links                                |
+| `COOKIE_SAMESITE`                                  |          | `strict`                | `strict` for same-site deployments; `none` only if cross-site  |
+| `DONOR_CONTACT_INTERVAL_DAYS`                      |          | `90`                    | Days after a donation before the system may contact a donor    |
+| `SHELF_LIFE_DAYS`                                  |          | reference values        | Per-component overrides, e.g. `PLATELETS=7,PRBC=35`            |
+| `EXPIRY_WARNING_DAYS`                              |          | `3`                     | "Expiring soon" window                                         |
+| `EXPIRY_SWEEP_INTERVAL_MINUTES`                    |          | `5`                     | How often expired units are marked                             |
+| `JOBS_ENABLED`                                     |          | `true`                  | Background jobs on/off                                         |
+| `REQUEST_EXPIRY_GRACE_HOURS`                       |          | `2`                     | Hours an overdue request stays open before it expires          |
+| `RESERVATION_HOLD_HOURS`                           |          | `24`                    | Unissued reservations are released after this                  |
+| `DONOR_SEARCH_RADIUS_KM` / `…_EMERGENCY_KM`        |          | `25` / `50`             | Donor search radius around the hospital                        |
+| `OUTREACH_DONORS_PER_UNIT` / `OUTREACH_MAX_DONORS` |          | `3` / `30`              | How many potential donors are suggested / at most contacted    |
+| `PUBLIC_STOCK_LOW_BELOW` / `…_GOOD_FROM`           |          | `5` / `15`              | Public stock level thresholds (units)                          |
+| `APP_TIME_ZONE`                                    |          | `Asia/Kolkata`          | Time zone for message text and analytics buckets               |
+| `NOTIFICATION_RETENTION_DAYS`                      |          | `180`                   | Notifications are deleted after this                           |
+| `MAIL_TRANSPORT` / `SMTP_URL` / `MAIL_FROM`        |          | `console`               | `smtp` sends real email through `SMTP_URL`                     |
+| `API_DOCS_ENABLED`                                 |          | on outside production   | Serve the OpenAPI document at `/api/docs/openapi.json`         |
+
+Policy values (contact interval, holds, radii, outreach size, grace period, warnings, public
+thresholds) are only **defaults**: administrators change them at runtime in **System Settings**.
 
 The server validates its configuration at startup and refuses to start with a clear message if
 anything is missing or invalid.
@@ -183,3 +216,16 @@ indexes behave exactly as in production.
 ```bash
 npm test
 ```
+
+## API documentation
+
+The OpenAPI 3.1 description in [docs/openapi.json](docs/openapi.json) is generated from the route
+table itself — paths, request schemas (the same zod schemas that validate requests) and access
+rules (the same middleware that enforces them) — so it cannot drift: a test fails when it is out
+of date. It is also served at `/api/docs/openapi.json` in development. Open it in any OpenAPI
+viewer (e.g. Swagger Editor, Postman, Insomnia).
+
+## Deployment
+
+Docker images, a compose file (MongoDB replica set + API + nginx web), security headers, CI and a
+go-live checklist: see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).

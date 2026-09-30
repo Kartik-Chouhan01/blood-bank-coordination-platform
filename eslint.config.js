@@ -24,7 +24,8 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
-    files: ['backend/scripts/**/*.ts'],
+    // Command-line tools print to the terminal on purpose.
+    files: ['backend/scripts/**/*.ts', 'backend/src/cli/**/*.ts'],
     rules: { 'no-console': 'off' },
   },
   {

@@ -72,11 +72,11 @@ them rather than deleting them:
 
 ## 5. Residual risks and next steps
 
-| Risk                                                                            | Mitigation now                                               | Planned                                                               |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------- |
-| Audit log can be altered by someone with direct database access                 | No application path edits it; entries written in-transaction | Ship audit entries to write-once storage / SIEM (Phase 11 deployment) |
-| No multi-factor authentication for administrators                               | Strong password policy, lockout, short-lived tokens          | TOTP for ADMIN accounts (future)                                      |
-| The SPA's Content-Security-Policy and HSTS depend on how the frontend is hosted | API sends helmet headers                                     | CSP/HSTS in the hosting config (Phase 11)                             |
-| Email transport is the console adapter                                          | Production refuses to print tokens                           | Real SMTP/API adapter with SPF/DKIM (Phase 11)                        |
-| Staff can see all banks' inventory (by design, A45)                             | Changes limited to own bank; all changes audited             | Revisit if a multi-organisation network needs stricter isolation      |
-| Dependency vulnerabilities appear over time                                     | 0 known today                                                | `npm audit` + Dependabot in CI (Phase 11)                             |
+| Risk                                                                            | Mitigation now                                                                                    | Planned                                                               |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Audit log can be altered by someone with direct database access                 | No application path edits it; entries written in-transaction                                      | Ship audit entries to write-once storage / SIEM (Phase 11 deployment) |
+| No multi-factor authentication for administrators                               | Strong password policy, lockout, short-lived tokens                                               | TOTP for ADMIN accounts (future)                                      |
+| The SPA's Content-Security-Policy and HSTS depend on how the frontend is hosted | **Resolved in Phase 11**: `deploy/nginx.conf` sets CSP, HSTS and related headers                  | Keep the same headers if hosting elsewhere                            |
+| Email transport is the console adapter                                          | **Resolved in Phase 11**: SMTP adapter (`MAIL_TRANSPORT=smtp`); startup warning otherwise         | Configure SPF/DKIM/DMARC for the sender domain                        |
+| Staff can see all banks' inventory (by design, A45)                             | Changes limited to own bank; all changes audited                                                  | Revisit if a multi-organisation network needs stricter isolation      |
+| Dependency vulnerabilities appear over time                                     | **Resolved in Phase 11**: `npm audit` in CI (production deps must be clean) and weekly Dependabot | Review and merge updates promptly                                     |

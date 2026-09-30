@@ -324,6 +324,22 @@ staff blocked while their blood bank is inactive · every route proven protected
 the whole API. The Phase 10 review — threat model, controls, findings and residual risks — is in
 [SECURITY.md](SECURITY.md).
 
+### API documentation
+
+`docs/openapi.json` (OpenAPI 3.1) is generated from the running route table (`src/docs/openapi.ts`):
+`validate()` and `authorize()` attach their zod schemas and roles to themselves (`utils/routeMeta.ts`),
+so paths, parameters, request bodies and access rules come from the same code that enforces them.
+Responses are described by the shared envelope; `data` types are the `@bbms/shared` interfaces.
+Served at `/api/docs/openapi.json` unless `API_DOCS_ENABLED=false` (default off in production).
+
+### Deployment
+
+Container images for the API (Node 22, non-root, production dependencies only, health check) and
+the web app (unprivileged nginx serving the SPA, proxying `/api`, strict CSP/HSTS and other
+headers); `docker-compose.yml` with a single-node MongoDB replica set; CI (typecheck, lint,
+format, tests with coverage, OpenAPI sync, build, `npm audit`, container builds) and Dependabot.
+Email goes through SMTP in production (`MAIL_TRANSPORT=smtp`). See [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ### System settings
 
 Administrator-editable **policies** (`modules/settings`, definitions in `@bbms/shared`
@@ -340,8 +356,19 @@ immediately after a change; stored values that no longer fit their definition ar
 - **Backend** — Vitest + Supertest against a real single-node replica set (mongodb-memory-server),
   so transactions and unique indexes behave exactly as in production. Unit tests for pure domain
   logic; integration tests for workflows, IDOR, role violations and concurrent reservations.
-- **Frontend** — Vitest + React Testing Library (jsdom).
-- **Shared** — Vitest for enum helpers.
+- **Frontend** — Vitest + React Testing Library (jsdom), rendering the real route tree with the
+  real auth provider; API modules are mocked per test. Staff, admin, hospital and donor workflows
+  are exercised end to end in the UI (forms, dialogs, validation, redirects).
+- **Shared** — Vitest for permissions, settings definitions and every domain validation schema the
+  API and UI share.
+- **Security tests** walk the whole route table (`utils/routeTable.ts`): 401 without a session
+  outside an explicit public allowlist, 403 for donors outside their area.
+- **Coverage** (`npm run test:coverage`, run in CI) with ratcheting thresholds per package — set a
+  little below the measured values and raised, never lowered. At Phase 11: backend ≈94 % lines /
+  79 % branches, shared ≈91 % / 95 %, frontend ≈67 % / 62 %.
+- **Generated artefacts are tested**: `docs/openapi.json` must equal what the route table produces.
+- **Seed data** (`npm run seed`) is built through the application's services, and was checked for
+  invariants (request counters = live allocations; one live allocation per reserved/issued unit).
 
 ## 14. Phases
 
@@ -357,7 +384,7 @@ immediately after a change; stored values that no longer fit their definition ar
 | 8   | Notifications                                                                          | **done** |
 | 9   | Dashboards & analytics                                                                 | **done** |
 | 10  | Security & audit review                                                                | **done** |
-| 11  | Test hardening, seed data, OpenAPI docs, deployment config                             | next     |
+| 11  | Test hardening, seed data, OpenAPI docs, deployment config                             | **done** |
 
 ## Changes from the original specification
 
@@ -525,3 +552,15 @@ Approved deviations, with rationale. New items are appended as phases land.
 | A87 | Consent changes (availability, contact preferences) and account lockouts are audited.                                                                                                   | Consent and credential-stuffing signals must be reconstructable.                                 |
 | A88 | A security test walks every mounted route: 401 without a session (public allowlist), 403 for donors outside their area.                                                                 | A new unprotected route fails the build instead of shipping.                                     |
 | A89 | Only same-app paths are followed after sign-in or from notifications.                                                                                                                   | Defence in depth against open redirects.                                                         |
+
+### Added during Phase 11
+
+| #   | Change                                                                                                                                                                                                          | Why                                                                                           |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| A90 | OpenAPI generated from the route table (middleware carries its schemas and roles) instead of hand-written annotations; a test fails when the committed file is stale.                                           | Documentation that cannot drift from the code that enforces it.                               |
+| A91 | One route table (`listRoutes`) feeds both the security tests and the OpenAPI generator.                                                                                                                         | The public surface the tests assume and the one the docs publish are provably the same.       |
+| A92 | Seed data goes through the real services (plus closed history inserted with past dates); refuses production and non-empty databases unless `--reset`.                                                           | Demo data that obeys every rule and never damages real data.                                  |
+| A93 | SMTP email transport (`MAIL_TRANSPORT=smtp`), plain text only; production warns at startup when email is not configured.                                                                                        | Verification, reset and notification emails in real deployments.                              |
+| A94 | Web container sets CSP (`script-src 'self'`, no inline), HSTS, `frame-ancestors 'none'`, a restrictive Permissions-Policy (geolocation for the donor's own profile only) and serves the API on the same origin. | Closes the SPA-header residual risk from the Phase 10 review; keeps strict same-site cookies. |
+| A95 | `create-admin` ships compiled (`dist/cli/create-admin.js`) so the first administrator can be created inside the production image.                                                                               | No dev tooling in production images.                                                          |
+| A96 | Coverage thresholds per package, ratcheting; CI also audits dependencies and builds both images.                                                                                                                | Quality can only go up; container builds are verified where Docker is available.              |

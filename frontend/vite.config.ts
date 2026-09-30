@@ -19,5 +19,13 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
     // Full-app renders with user-event typing are slow under jsdom on some machines.
     testTimeout: 15_000,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/main.tsx', 'src/vite-env.d.ts'],
+      reporter: ['text-summary', 'html', 'lcov'],
+      // Ratchet: a little below the measured values; raise as coverage grows, never lower.
+      thresholds: { statements: 64, branches: 60, functions: 56, lines: 64 },
+    },
   },
 });

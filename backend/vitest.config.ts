@@ -8,6 +8,15 @@ export default defineConfig({
     // Integration tests share one replica set; run files sequentially to keep them isolated.
     fileParallelism: false,
     testTimeout: 20_000,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      // Process entry point and CLI are exercised by the build/deploy checks, not unit tests.
+      exclude: ['src/server.ts', 'src/cli/**'],
+      reporter: ['text-summary', 'html', 'lcov'],
+      // Ratchet: a little below the measured values; raise as coverage grows, never lower.
+      thresholds: { statements: 88, branches: 76, functions: 92, lines: 92 },
+    },
     hookTimeout: 120_000,
     env: {
       NODE_ENV: 'test',

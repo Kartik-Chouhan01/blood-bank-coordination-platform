@@ -111,6 +111,19 @@ const envSchema = z.object({
   PUBLIC_STOCK_GOOD_FROM: z.coerce.number().int().min(2).max(5000).default(15),
   /** Notifications are deleted automatically this many days after they were created. */
   NOTIFICATION_RETENTION_DAYS: z.coerce.number().int().min(7).max(3650).default(180),
+  /**
+   * Serve the generated OpenAPI document at /api/docs/openapi.json. Defaults to on outside
+   * production; the same file is committed at docs/openapi.json.
+   */
+  API_DOCS_ENABLED: z.enum(['true', 'false']).optional(),
+  /** `console` prints emails (development); `smtp` sends them through SMTP_URL. */
+  MAIL_TRANSPORT: z.enum(['console', 'smtp']).default('console'),
+  /** e.g. smtps://user:password@smtp.example.org:465 */
+  SMTP_URL: z
+    .string()
+    .regex(/^smtps?:\/\//, 'must start with smtp:// or smtps://')
+    .optional(),
+  MAIL_FROM: z.string().min(3).default('DigiRakt <no-reply@localhost>'),
   /** Background jobs (expiry sweep). Disabled in tests; tests call jobs directly. */
   JOBS_ENABLED: z
     .enum(['true', 'false'])
@@ -133,6 +146,9 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
     throw new InvalidEnvironmentError(
       result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`),
     );
+  }
+  if (result.data.MAIL_TRANSPORT === 'smtp' && !result.data.SMTP_URL) {
+    throw new InvalidEnvironmentError(['SMTP_URL: required when MAIL_TRANSPORT=smtp']);
   }
   if (result.data.PUBLIC_STOCK_GOOD_FROM <= result.data.PUBLIC_STOCK_LOW_BELOW) {
     throw new InvalidEnvironmentError([
@@ -162,3 +178,5 @@ if (process.env.NODE_ENV !== 'test' && existsSync('.env')) {
 
 export const env = parseEnv(process.env);
 export const isProduction = env.NODE_ENV === 'production';
+export const apiDocsEnabled =
+  env.API_DOCS_ENABLED === undefined ? !isProduction : env.API_DOCS_ENABLED === 'true';

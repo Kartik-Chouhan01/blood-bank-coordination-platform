@@ -14,20 +14,27 @@ import { authenticate } from '../../middleware/authenticate.js';
 import { authorize } from '../../middleware/authorize.js';
 import { validate } from '../../middleware/validate.js';
 import { AppError } from '../../utils/AppError.js';
+import { withMeta } from '../../utils/routeMeta.js';
 import * as controller from './requests.controller.js';
 
 export const requestsRouter = Router();
 const idParams = z.object({ id: objectIdSchema });
 
 /** Hospitals (own requests only — enforced in the service) or staff. */
-const hospitalOrStaff: RequestHandler = (req, _res, next) => {
-  const role = req.auth?.role;
-  next(
-    hasPermission(role, 'hospital:self') || hasPermission(role, 'requests:read')
-      ? undefined
-      : AppError.forbidden(),
-  );
-};
+const hospitalOrStaff: RequestHandler = withMeta(
+  (req, _res, next) => {
+    const role = req.auth?.role;
+    next(
+      hasPermission(role, 'hospital:self') || hasPermission(role, 'requests:read')
+        ? undefined
+        : AppError.forbidden(),
+    );
+  },
+  {
+    roles: ['HOSPITAL', 'BLOOD_BANK_STAFF', 'ADMIN'],
+    access: 'Hospitals see only their own requests (others return 404)',
+  },
+);
 
 requestsRouter.use(authenticate);
 

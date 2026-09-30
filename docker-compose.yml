@@ -1,0 +1,59 @@
+# Production-like stack: MongoDB (single-node replica set, required for transactions), the API
+# and the web app (nginx serving the SPA and proxying /api). Put TLS in front of port 8080.
+#
+#   cp deploy/.env.production.example deploy/.env.production   # then fill in real values
+#   docker compose up -d --build
+#   docker compose exec api node dist/cli/create-admin.js --email you@example.org --name "Your Name"
+name: digirakt
+
+services:
+  mongo:
+    image: mongo:8.0
+    command: ['--replSet', 'rs0', '--bind_ip_all']
+    volumes:
+      - mongo-data:/data/db
+    # Initialises the replica set on first start, then reports healthy once it is primary.
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }).ok }"
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: deploy/.env.production
+    environment:
+      NODE_ENV: production
+      PORT: '5000'
+      MONGODB_URI: mongodb://mongo:27017/digirakt?replicaSet=rs0
+      # One proxy (nginx in the web container) sits in front of the API.
+      TRUST_PROXY: '1'
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_EMERGENCY_HOTLINE: ${VITE_EMERGENCY_HOTLINE:-}
+    ports:
+      - '8080:8080'
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mongo-data:

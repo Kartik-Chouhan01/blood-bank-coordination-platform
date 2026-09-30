@@ -1,5 +1,6 @@
 import { env, isProduction } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
+import { SmtpMailAdapter } from './smtpAdapter.js';
 
 export interface MailMessage {
   to: string;
@@ -43,7 +44,10 @@ export class InMemoryMailAdapter implements MailAdapter {
   }
 }
 
-let adapter: MailAdapter = new ConsoleMailAdapter();
+let adapter: MailAdapter =
+  env.MAIL_TRANSPORT === 'smtp' && env.SMTP_URL
+    ? new SmtpMailAdapter(env.SMTP_URL, env.MAIL_FROM)
+    : new ConsoleMailAdapter();
 
 export function setMailAdapter(next: MailAdapter) {
   adapter = next;

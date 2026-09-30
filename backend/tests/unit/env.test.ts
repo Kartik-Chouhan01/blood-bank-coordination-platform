@@ -46,3 +46,16 @@ describe('parseEnv', () => {
     expect(() => parseEnv({ ...base, JWT_ACCESS_SECRET: 'short' })).toThrow(/JWT_ACCESS_SECRET/);
   });
 });
+
+describe('mail transport', () => {
+  it('requires an SMTP URL for the smtp transport', () => {
+    expect(() => parseEnv({ ...base, MAIL_TRANSPORT: 'smtp' })).toThrow(/SMTP_URL/);
+    expect(() => parseEnv({ ...base, MAIL_TRANSPORT: 'smtp', SMTP_URL: 'http://x' })).toThrow(
+      /SMTP_URL/,
+    );
+    expect(
+      parseEnv({ ...base, MAIL_TRANSPORT: 'smtp', SMTP_URL: 'smtps://u:p@smtp.example.org:465' })
+        .MAIL_TRANSPORT,
+    ).toBe('smtp');
+  });
+});
