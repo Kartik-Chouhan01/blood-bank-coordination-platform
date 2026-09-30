@@ -21,6 +21,7 @@ import { PasswordField } from '@/components/ui/fields';
 import { applyServerErrors } from '@/utils/formErrors';
 import { toApiClientError } from '@/services/apiError';
 import { AccountDetailsForm } from '../components/AccountDetailsForm';
+import { DeleteAccountCard } from '../components/DeleteAccountCard';
 
 function ChangePasswordCard() {
   const { applySession } = useAuth();
@@ -141,6 +142,7 @@ export function AccountPage() {
             </Alert>
           )}
         </Card>
+        {user.role === 'DONOR' && <DeleteAccountCard />}
       </div>
       <ConfirmationDialog
         open={confirmOpen}

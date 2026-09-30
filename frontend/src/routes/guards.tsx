@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { homePathFor } from '@/constants/navigation';
 import { LoadingState, EmptyState } from '@/components/ui/States';
 import { ButtonLink } from '@/components/ui/Button';
+import { isInternalPath } from '@/utils/paths';
 
 function FullPageLoading() {
   return (
@@ -17,12 +18,12 @@ function FullPageLoading() {
 
 export interface LoginRedirectState {
   from?: string;
-  reason?: 'expired';
+  reason?: 'expired' | 'account-deleted';
 }
 
 /** Signed-in users only; everyone else is sent to /login and returned afterwards. */
 export function RequireAuth({ children }: { children?: ReactNode }) {
-  const { status, sessionExpired, signedOut } = useAuth();
+  const { status, sessionExpired, signedOut, accountDeleted } = useAuth();
   const location = useLocation();
 
   if (status === 'loading') return <FullPageLoading />;
@@ -30,7 +31,9 @@ export function RequireAuth({ children }: { children?: ReactNode }) {
     // After an expiry or a deep link we return the user to this page once they sign in; after a
     // deliberate sign-out we don't, since the next person signing in may be someone else.
     const state: LoginRedirectState = signedOut
-      ? {}
+      ? accountDeleted
+        ? { reason: 'account-deleted' }
+        : {}
       : { from: location.pathname + location.search, ...(sessionExpired && { reason: 'expired' }) };
     return <Navigate to="/login" replace state={state} />;
   }
@@ -70,7 +73,12 @@ export function GuestOnly({ children }: { children?: ReactNode }) {
   const redirect = (useLocation().state ?? {}) as LoginRedirectState;
   if (status === 'loading') return <FullPageLoading />;
   if (status === 'authenticated' && user) {
-    return <Navigate to={redirect.from ?? homePathFor(user.role)} replace />;
+    return (
+      <Navigate
+        to={isInternalPath(redirect.from) ? redirect.from : homePathFor(user.role)}
+        replace
+      />
+    );
   }
   return children ?? <Outlet />;
 }

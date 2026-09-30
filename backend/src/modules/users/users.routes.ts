@@ -4,6 +4,7 @@ import {
   listUsersQuerySchema,
   objectIdSchema,
   inviteStaffSchema,
+  deleteAccountSchema,
   updateAccountSchema,
   updateUserStatusSchema,
 } from '@bbms/shared';
@@ -22,6 +23,14 @@ usersRouter.patch(
   authorize('account:self'),
   validate({ body: updateAccountSchema }),
   controller.updateMe,
+);
+
+// Donors only (checked in the service with a clear message); needs the current password.
+usersRouter.post(
+  '/me/delete',
+  authorize('account:self'),
+  validate({ body: deleteAccountSchema }),
+  controller.deleteMe,
 );
 
 usersRouter.get(

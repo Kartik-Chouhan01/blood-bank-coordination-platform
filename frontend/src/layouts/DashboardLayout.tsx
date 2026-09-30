@@ -9,6 +9,7 @@ import {
   Droplet,
   Hospital,
   ScrollText,
+  Settings2,
   Send,
   Droplets,
   HandHeart,
@@ -76,6 +77,7 @@ function navItemsFor(homePath: string): NavItem[] {
     },
     { to: '/admin/users', label: 'Users', icon: Users, permission: 'users:read' },
     { to: '/admin/audit-logs', label: 'Audit log', icon: ScrollText, permission: 'audit:read' },
+    { to: '/admin/settings', label: 'Settings', icon: Settings2, permission: 'settings:manage' },
     { to: '/account', label: 'Account', icon: UserCog, permission: 'account:self' },
   ];
 }

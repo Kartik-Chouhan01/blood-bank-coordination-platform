@@ -8,7 +8,7 @@ import {
   type UnitStatus,
   type UnitTransitionInput,
 } from '@bbms/shared';
-import { env } from '../../config/env.js';
+import { settings } from '../settings/settings.service.js';
 import { manualTransitionsFrom } from '../../domain/inventory/unitStateMachine.js';
 import { AppError } from '../../utils/AppError.js';
 import type { Actor } from '../../utils/actor.js';
@@ -101,7 +101,7 @@ export async function transitionUnitManually(actor: Actor, id: string, input: Un
 /** Usable stock excludes anything past expiry, whether or not the sweep has run yet. */
 export async function getSummary(bloodBankId?: string): Promise<InventorySummary> {
   const now = new Date();
-  const soon = new Date(now.getTime() + env.EXPIRY_WARNING_DAYS * DAY_MS);
+  const soon = new Date(now.getTime() + settings().expiryWarningDays * DAY_MS);
   const scope = bloodBankId ? { bloodBankId: new Types.ObjectId(bloodBankId) } : {};
 
   const [available, byStatus, expiringSoon, expiredAwaitingSweep] = await Promise.all([
@@ -138,6 +138,6 @@ export async function getSummary(bloodBankId?: string): Promise<InventorySummary
     byStatus: Object.fromEntries(byStatus.map((row) => [row._id, row.n])),
     expiringSoon,
     expiredAwaitingSweep,
-    expiryWarningDays: env.EXPIRY_WARNING_DAYS,
+    expiryWarningDays: settings().expiryWarningDays,
   };
 }

@@ -1,6 +1,7 @@
 import request from 'supertest';
 import type { Express } from 'express';
 import type { Role } from '@bbms/shared';
+import { BloodBankModel } from '../../src/modules/bloodBanks/bloodBank.model.js';
 import { UserModel } from '../../src/modules/users/user.model.js';
 import { hashPassword } from '../../src/modules/auth/password.js';
 import { REFRESH_COOKIE } from '../../src/modules/auth/authCookies.js';
@@ -41,6 +42,24 @@ export function hospitalPayload(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/** The active bank staff users belong to when a test does not pick one (staff always need one). */
+async function defaultBankId() {
+  const bank = await BloodBankModel.findOneAndUpdate(
+    { code: 'TESTBANK' },
+    {
+      $setOnInsert: {
+        name: 'Default test bank',
+        code: 'TESTBANK',
+        address: { line1: '1 Test Rd', city: 'Pune', state: 'MH', postalCode: '411001' },
+        contactPhone: '+91 20 0000 0000',
+        contactEmail: 'test-bank@example.test',
+      },
+    },
+    { upsert: true, returnDocument: 'after' },
+  ).lean();
+  return bank!._id;
+}
+
 /** Inserts a user directly (e.g. staff/admin accounts that cannot self-register). */
 export async function createUser(role: Role, overrides: Record<string, unknown> = {}) {
   const email = `${role.toLowerCase()}-${unique()}@example.test`;
@@ -51,6 +70,10 @@ export async function createUser(role: Role, overrides: Record<string, unknown> 
     passwordHash: await hashPassword(PASSWORD),
     role,
     emailVerified: true,
+    ...(role === 'BLOOD_BANK_STAFF' &&
+      !('bloodBankId' in overrides) && {
+        bloodBankId: await defaultBankId(),
+      }),
     ...overrides,
   });
 }

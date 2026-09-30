@@ -29,3 +29,6 @@ export * from './api/notifications.js';
 export * from './validation/notifications.js';
 export * from './api/dashboard.js';
 export * from './validation/dashboard.js';
+export * from './constants/settings.js';
+export * from './api/settings.js';
+export * from './validation/settings.js';

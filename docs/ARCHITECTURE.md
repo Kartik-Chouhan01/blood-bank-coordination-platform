@@ -88,7 +88,7 @@ SystemSetting (typed key/value; defaults live in code)
 | DonorOutreach     | requestId, donorId, score, approxDistanceKm, status, notifiedAt, respondedAt                                                                                                                                                                | {requestId, donorId} unique; {donorId, notifiedAt}                                      |
 | Notification      | recipientId, type, title, message, link, entity{type,id}, priority, readAt, deliveries[]                                                                                                                                                    | {recipientId, readAt, createdAt}; TTL(createdAt)                                        |
 | AuditLog          | actorId, actorRole, action, entityType, entityId, before, after, reason, meta{requestId, ipTruncated, userAgent}                                                                                                                            | {entityType, entityId, createdAt}; {actorId, createdAt}; append-only                    |
-| SystemSetting     | key, value, updatedBy                                                                                                                                                                                                                       | key unique                                                                              |
+| SystemSetting     | key (one of the defined settings), value, updatedBy                                                                                                                                                                                         | key unique                                                                              |
 
 ## 4. API surface
 
@@ -98,7 +98,7 @@ Envelope: `{ success: true, data, meta? }` or `{ success: false, message, errorC
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | `/api/health`         | DB-aware liveness (503 when degraded)                                                                                                                                                                                        | public — **built**                           |
 | `/api/auth`           | register/donor, register/hospital, login, refresh, logout, logout-all, verify-email, forgot/reset-password, me                                                                                                               | public / authenticated — **built**           |
-| `/api/users`          | list, get, change status (reason required), `me`, `staff` (invite), `:id/resend-invite`                                                                                                                                      | ADMIN — **built**                            |
+| `/api/users`          | list, get, change status (reason required), `me` (patch), `me/delete` (donor self-service anonymisation), `staff` (invite), `:id/resend-invite` — **built**                                                                  | ADMIN / self                                 |
 | `/api/donors`         | `me` (get/patch, availability, notification-preferences), `me/donations`; list/get/verification/blood-group — **built** (requests for help live under `/api/donor-outreach`)                                                 | self / STAFF, ADMIN                          |
 | `/api/hospitals`      | `me` (get/patch); list/get (STAFF, ADMIN); `:id/verification` (ADMIN) — **built**                                                                                                                                            | self / STAFF, ADMIN                          |
 | `/api/blood-banks`    | list/get (STAFF, ADMIN); create/update incl. deactivate (ADMIN) — **built**                                                                                                                                                  | STAFF, ADMIN                                 |
@@ -110,7 +110,7 @@ Envelope: `{ success: true, data, meta? }` or `{ success: false, message, errorC
 | `/api/notifications`  | list (`?unread=true`, paginated), `unread-count`, `:id/read`, `read-all` — **built**                                                                                                                                         | owner (any signed-in user)                   |
 | `/api/dashboard`      | `public-stats` (no sign-in; coarse levels, cached); `overview` (STAFF, ADMIN); `analytics` (`days` 7 / 30 / 90 / 365, optional `bloodBankId`; STAFF, ADMIN); `hospital` (HOSPITAL, own) — **built**                          | role-scoped                                  |
 | `/api/audit-logs`     | filtered, paginated, read-only list (action, record type, record id, actor, date range) — **built**                                                                                                                          | ADMIN                                        |
-| `/api/settings`       | get / patch (reason required, audited)                                                                                                                                                                                       | ADMIN                                        |
+| `/api/settings`       | list (value, default, last change) / patch (`changes` + mandatory `reason`; unknown keys rejected; one audit entry per setting) — **built**                                                                                  | ADMIN                                        |
 
 Self-service always uses `/me` routes, so a client never supplies its own owner id (IDOR by design).
 
@@ -319,7 +319,21 @@ helmet · CORS allowlist (wildcard refused in production) · per-IP rate limit (
 a request guard rejecting `$`-prefixed or dotted keys anywhere in body/query, plus zod validation that
 strips unknown keys (NoSQL-injection and mass-assignment guard) · 100 kb JSON limit · consistent errors that never expose stack traces or
 internal messages · request ids for support correlation · pino log redaction of credentials, tokens,
-email, phone and date of birth · secrets only from environment, validated at startup.
+email, phone and date of birth · secrets only from environment, validated at startup ·
+staff blocked while their blood bank is inactive · every route proven protected by a test that walks
+the whole API. The Phase 10 review — threat model, controls, findings and residual risks — is in
+[SECURITY.md](SECURITY.md).
+
+### System settings
+
+Administrator-editable **policies** (`modules/settings`, definitions in `@bbms/shared`
+`SETTING_DEFINITIONS`): contact interval, donor search radii, outreach size, reservation hold,
+request grace period, expiring-soon warning, public stock thresholds, and two switches —
+_offer compatible substitutes_ and _conserve universal donors_ (O− red cells / AB plasma are not
+pre-selected while other units fit). Compatibility tables are **not** settings (S2). Defaults come
+from the environment variables of the same meaning, so existing deployments keep their behaviour.
+Values are held in memory, loaded at startup, refreshed every minute (other instances) and
+immediately after a change; stored values that no longer fit their definition are ignored.
 
 ## 13. Testing
 
@@ -342,8 +356,8 @@ email, phone and date of birth · secrets only from environment, validated at st
 | 7   | Matching: compatibility, allocation, donor outreach                                    | **done** |
 | 8   | Notifications                                                                          | **done** |
 | 9   | Dashboards & analytics                                                                 | **done** |
-| 10  | Security & audit review                                                                | next     |
-| 11  | Test hardening, seed data, OpenAPI docs, deployment config                             |          |
+| 10  | Security & audit review                                                                | **done** |
+| 11  | Test hardening, seed data, OpenAPI docs, deployment config                             | next     |
 
 ## Changes from the original specification
 
@@ -499,3 +513,15 @@ Approved deviations, with rationale. New items are appended as phases land.
 | A80 | Buckets are calendar days/weeks/months in `APP_TIME_ZONE`, with empty periods shown as zero.                                                                        | A day in India should not split at 05:30; gaps must look like zero, not missing.                     |
 | A81 | Charts are built in-house as accessible SVG (keyboard tooltips, table view, validated palette) instead of adding a chart library.                                   | Two chart types did not justify a dependency; accessibility is under our control.                    |
 | A82 | The staff home now leads with live KPIs and stock by group; hospitals see their own 90-day figures; donors see their own group's stock level.                       | Each role's first screen answers "what needs my attention?"                                          |
+
+### Added during Phase 10
+
+| #   | Change                                                                                                                                                                                  | Why                                                                                              |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| A83 | **System Settings** built (A26 resolved): policies editable by administrators with a mandatory reason and one audit entry per setting; defaults from the environment.                   | Policies change with regulations and seasons; changes must be attributable and need no redeploy. |
+| A84 | Two S2 policy switches: _offer compatible substitutes_ (off → exact group only, for units and donors, enforced at reservation) and _conserve universal donors_ (suggestion only).       | Lets a bank apply a stricter local policy without touching the tested compatibility tables.      |
+| A85 | Staff are refused at sign-in, refresh and on every request while their blood bank is inactive (finding F-01).                                                                           | A32 must hold after a bank is deactivated, not only at invitation time.                          |
+| A86 | Donor **account deletion by anonymisation** (A10 implemented): password + typed confirmation; donation records kept without the person. Hospitals/staff are closed by an administrator. | DPDP right to erasure while keeping blood traceability.                                          |
+| A87 | Consent changes (availability, contact preferences) and account lockouts are audited.                                                                                                   | Consent and credential-stuffing signals must be reconstructable.                                 |
+| A88 | A security test walks every mounted route: 401 without a session (public allowlist), 403 for donors outside their area.                                                                 | A new unprotected route fails the build instead of shipping.                                     |
+| A89 | Only same-app paths are followed after sign-in or from notifications.                                                                                                                   | Defence in depth against open redirects.                                                         |

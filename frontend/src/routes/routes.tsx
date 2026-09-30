@@ -39,6 +39,7 @@ import { DonorSettingsPage } from '@/features/donor/pages/DonorSettingsPage';
 import { DonorsPage } from '@/features/admin/pages/DonorsPage';
 import { DonorDetailPage } from '@/features/admin/pages/DonorDetailPage';
 import { UsersPage } from '@/features/admin/pages/UsersPage';
+import { SettingsPage } from '@/features/admin/pages/SettingsPage';
 import { NotFoundPage, RouteErrorPage } from '@/pages/ErrorPages';
 import { GuestOnly, RequireAuth, RequirePermission } from './guards';
 
@@ -169,6 +170,11 @@ export const routes: RouteObject[] = [
                 path: 'audit-logs',
                 element: <RequirePermission permission="audit:read" />,
                 children: [{ index: true, element: <AuditLogPage /> }],
+              },
+              {
+                path: 'settings',
+                element: <RequirePermission permission="settings:manage" />,
+                children: [{ index: true, element: <SettingsPage /> }],
               },
               {
                 path: 'users',

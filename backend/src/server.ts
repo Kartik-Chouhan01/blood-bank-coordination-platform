@@ -4,6 +4,10 @@ import { logger } from './config/logger.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { createApp } from './app.js';
 import { startJobs, stopJobs } from './jobs/scheduler.js';
+import { refreshSettings } from './modules/settings/settings.service.js';
+
+/** Other instances pick up an administrator's settings change within this time. */
+const SETTINGS_REFRESH_MS = 60_000;
 
 async function start() {
   try {
@@ -16,6 +20,12 @@ async function start() {
     );
     process.exit(1);
   }
+
+  await refreshSettings();
+  const settingsTimer = setInterval(() => {
+    refreshSettings().catch((err: unknown) => logger.error({ err }, 'Could not refresh settings'));
+  }, SETTINGS_REFRESH_MS);
+  settingsTimer.unref();
 
   const server = createApp().listen(env.PORT, () => {
     logger.info(`API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);

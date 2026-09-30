@@ -5,7 +5,7 @@ import {
   type DonorStaffDetail,
   type DonorStaffSummary,
 } from '@bbms/shared';
-import { env } from '../../config/env.js';
+import { settings } from '../settings/settings.service.js';
 import { earliestContactDate, effectiveAvailability } from '../../domain/donors/availability.js';
 import type { User } from '../users/user.model.js';
 import type { AvailabilityHistoryEntry, DonorProfile } from './donorProfile.model.js';
@@ -45,9 +45,9 @@ export function toDonorSelfView(donor: DonorProfile): DonorSelfView {
     verificationStatus: donor.verificationStatus,
     notificationPreferences: donor.notificationPreferences,
     earliestContactDate: iso(
-      earliestContactDate(donor.lastDonationAt, env.DONOR_CONTACT_INTERVAL_DAYS),
+      earliestContactDate(donor.lastDonationAt, settings().donorContactIntervalDays),
     ),
-    contactIntervalDays: env.DONOR_CONTACT_INTERVAL_DAYS,
+    contactIntervalDays: settings().donorContactIntervalDays,
   };
 }
 
@@ -83,7 +83,7 @@ export function toDonorStaffDetail(
     ...toDonorStaffSummary(donor, owner),
     availabilityHistory: presentHistory(donor.availabilityHistory),
     earliestContactDate: iso(
-      earliestContactDate(donor.lastDonationAt, env.DONOR_CONTACT_INTERVAL_DAYS),
+      earliestContactDate(donor.lastDonationAt, settings().donorContactIntervalDays),
     ),
     accountStatus: owner?.accountStatus ?? 'DEACTIVATED',
   };

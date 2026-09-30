@@ -1,7 +1,7 @@
 import { Types, type ClientSession } from 'mongoose';
 import { ERROR_CODES, type UnitStatus } from '@bbms/shared';
-import { env } from '../../config/env.js';
-import { isCompatible } from '../../domain/matching/compatibility.js';
+import { settings } from '../settings/settings.service.js';
+import { offeredDonorGroups } from '../../domain/matching/compatibility.js';
 import {
   ALLOCATABLE_REQUEST_STATUSES,
   statusForAllocatedUnits,
@@ -103,13 +103,17 @@ export async function reserveUnitsInSession({
     }
     if (
       unit.componentType !== request.componentType ||
-      !isCompatible(unit.bloodGroup, request.bloodGroup, request.componentType)
+      !offeredDonorGroups(
+        request.bloodGroup,
+        request.componentType,
+        settings().allowCompatibleSubstitutes,
+      ).includes(unit.bloodGroup)
     ) {
       throw unitNotAvailable(`Unit ${unit.unitCode} is not a compatible match for this request.`);
     }
   }
 
-  const holdUntil = new Date(now.getTime() + env.RESERVATION_HOLD_HOURS * HOUR_MS);
+  const holdUntil = new Date(now.getTime() + settings().reservationHoldHours * HOUR_MS);
   const allocations: Allocation[] = [];
   for (const id of unitIds) {
     const unit = byId.get(id.toString())!;

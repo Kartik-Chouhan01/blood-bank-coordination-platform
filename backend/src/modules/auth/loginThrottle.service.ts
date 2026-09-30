@@ -21,7 +21,8 @@ export async function assertNotLocked(email: string): Promise<void> {
   }
 }
 
-export async function recordFailedLogin(email: string): Promise<void> {
+/** Returns true when this failure locked the email out. */
+export async function recordFailedLogin(email: string): Promise<boolean> {
   const now = Date.now();
   const throttle = await LoginThrottleModel.findOneAndUpdate(
     { key: keyFor(email) },
@@ -33,7 +34,9 @@ export async function recordFailedLogin(email: string): Promise<void> {
       { _id: throttle._id },
       { $set: { failures: 0, lockedUntil: new Date(now + LOCK_MS) } },
     );
+    return true;
   }
+  return false;
 }
 
 export async function clearLoginThrottle(email: string): Promise<void> {

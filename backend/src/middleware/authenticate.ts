@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express';
 import { ERROR_CODES, type Role } from '@bbms/shared';
 import { AppError } from '../utils/AppError.js';
 import { verifyAccessToken } from '../modules/auth/accessToken.js';
+import { assertStaffBankActive } from '../modules/bloodBanks/bankAccess.js';
 import { UserModel } from '../modules/users/user.model.js';
 
 export interface RequestAuth {
@@ -42,6 +43,7 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
   if (user.accountStatus !== 'ACTIVE') {
     return next(new AppError(403, ERROR_CODES.ACCOUNT_SUSPENDED, 'This account is not active.'));
   }
+  await assertStaffBankActive(user);
 
   req.auth = {
     userId: user._id.toString(),

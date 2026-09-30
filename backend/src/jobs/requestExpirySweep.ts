@@ -1,5 +1,5 @@
 import { OPEN_REQUEST_STATUSES } from '@bbms/shared';
-import { env } from '../config/env.js';
+import { settings } from '../modules/settings/settings.service.js';
 import { logger } from '../config/logger.js';
 import { SYSTEM_ACTOR } from '../utils/actor.js';
 import { AppError } from '../utils/AppError.js';
@@ -19,7 +19,7 @@ const BATCH_SIZE = 200;
  * reserved for an expiring request go back to stock in the same transaction.
  */
 export async function runRequestExpirySweep(now = new Date()): Promise<number> {
-  const cutoff = new Date(now.getTime() - env.REQUEST_EXPIRY_GRACE_HOURS * 3_600_000);
+  const cutoff = new Date(now.getTime() - settings().requestExpiryGraceHours * 3_600_000);
   let expired = 0;
   for (;;) {
     const due = await BloodRequestModel.find({

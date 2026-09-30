@@ -3,6 +3,7 @@ import { Bell, CircleAlert, Siren } from 'lucide-react';
 import type { NotificationView } from '@bbms/shared';
 import { cn } from '@/utils/cn';
 import { formatDateTime, formatRelative } from '@/utils/format';
+import { isInternalPath } from '@/utils/paths';
 
 const PRIORITY_ICON = {
   CRITICAL: <Siren className="size-4 text-red-700" aria-hidden />,
@@ -54,7 +55,8 @@ export function NotificationItem({ notification: n, onOpen, compact }: Notificat
     'flex w-full gap-3 px-4 py-3 text-left hover:bg-slate-50',
     n.priority === 'CRITICAL' && unread && 'bg-red-50/60',
   );
-  return n.link ? (
+  // Links come from the server, but only in-app paths are ever followed.
+  return isInternalPath(n.link) ? (
     <Link to={n.link} className={className} onClick={() => onOpen(n)}>
       {body}
     </Link>

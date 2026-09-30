@@ -9,6 +9,7 @@ interface AuthState {
   user: AuthUser | null;
   sessionExpired: boolean;
   signedOut: boolean;
+  accountDeleted: boolean;
 }
 
 const ANONYMOUS: AuthState = {
@@ -16,6 +17,7 @@ const ANONYMOUS: AuthState = {
   user: null,
   sessionExpired: false,
   signedOut: false,
+  accountDeleted: false,
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -82,6 +84,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logoutAll: async () => {
         await authApi.logoutAll();
         endSession();
+      },
+      endDeletedAccount: () => {
+        setAccessToken(null);
+        setState({ ...ANONYMOUS, signedOut: true, accountDeleted: true });
       },
       refreshUser: async () => {
         const user = await authApi.me();

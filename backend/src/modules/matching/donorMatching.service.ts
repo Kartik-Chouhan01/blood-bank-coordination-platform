@@ -6,10 +6,10 @@ import {
   type DonorCandidates,
   type StartOutreachInput,
 } from '@bbms/shared';
-import { env } from '../../config/env.js';
+import { settings } from '../settings/settings.service.js';
 import { logger } from '../../config/logger.js';
 import { effectiveAvailabilityFilter } from '../../domain/donors/availability.js';
-import { getCompatibleDonorGroups } from '../../domain/matching/compatibility.js';
+import { offeredDonorGroups } from '../../domain/matching/compatibility.js';
 import { scoreDonor } from '../../domain/matching/ranking.js';
 import { ALLOCATABLE_REQUEST_STATUSES } from '../../domain/requests/requestStateMachine.js';
 import { AppError } from '../../utils/AppError.js';
@@ -61,7 +61,10 @@ async function loadAllocatableRequest(requestId: string | Types.ObjectId) {
 
 /** How many donors the system suggests contacting for a given number of missing units. */
 export const suggestedOutreachCount = (missingUnits: number) =>
-  Math.min(env.OUTREACH_MAX_DONORS, Math.max(0, missingUnits) * env.OUTREACH_DONORS_PER_UNIT);
+  Math.min(
+    settings().outreachMaxDonors,
+    Math.max(0, missingUnits) * settings().outreachDonorsPerUnit,
+  );
 
 /**
  * Applies every hard filter ("system criteria") and ranks the donors who pass. Filters: compatible
@@ -75,10 +78,16 @@ async function searchDonors(request: BloodRequest, shortfall: number): Promise<S
   if (!hospital) throw AppError.notFound('Hospital');
 
   const emergency = request.urgency === 'EMERGENCY';
-  const radiusKm = emergency ? env.DONOR_SEARCH_RADIUS_EMERGENCY_KM : env.DONOR_SEARCH_RADIUS_KM;
-  const groups = getCompatibleDonorGroups(request.bloodGroup, request.componentType);
+  const radiusKm = emergency
+    ? settings().emergencyDonorSearchRadiusKm
+    : settings().donorSearchRadiusKm;
+  const groups = offeredDonorGroups(
+    request.bloodGroup,
+    request.componentType,
+    settings().allowCompatibleSubstitutes,
+  );
   const lastAllowedDonation = new Date(
-    request.requiredBy.getTime() - env.DONOR_CONTACT_INTERVAL_DAYS * DAY_MS,
+    request.requiredBy.getTime() - settings().donorContactIntervalDays * DAY_MS,
   );
   const alreadyContacted = await DonorOutreachModel.distinct('donorId', { requestId: request._id });
 
@@ -169,7 +178,7 @@ async function searchDonors(request: BloodRequest, shortfall: number): Promise<S
     .map((d): ScoredDonor => {
       const distanceKm = d.distanceM === undefined ? null : Math.round(d.distanceM / 1000);
       const contactAllowedSince = d.lastDonationAt
-        ? d.lastDonationAt.getTime() + env.DONOR_CONTACT_INTERVAL_DAYS * DAY_MS
+        ? d.lastDonationAt.getTime() + settings().donorContactIntervalDays * DAY_MS
         : d.createdAt.getTime();
       const past = historyOf.get(d._id.toString());
       return {
@@ -229,9 +238,9 @@ async function contactDonors(actor: Actor, search: Search, donorIds: string[]) {
     );
   }
   const already = await DonorOutreachModel.countDocuments({ requestId: request._id });
-  if (already + chosen.length > env.OUTREACH_MAX_DONORS) {
+  if (already + chosen.length > settings().outreachMaxDonors) {
     throw AppError.conflict(
-      `At most ${env.OUTREACH_MAX_DONORS} donors can be contacted per request (${already} already contacted).`,
+      `At most ${settings().outreachMaxDonors} donors can be contacted per request (${already} already contacted).`,
     );
   }
 
@@ -304,7 +313,7 @@ export async function autoOutreachIfShort(requestId: Types.ObjectId) {
 
     const search = await searchDonors(request, shortfall);
     const already = await DonorOutreachModel.countDocuments({ requestId });
-    const count = Math.min(suggestedOutreachCount(missing), env.OUTREACH_MAX_DONORS - already);
+    const count = Math.min(suggestedOutreachCount(missing), settings().outreachMaxDonors - already);
     const picks = search.ranked.slice(0, Math.max(0, count)).map((d) => d.donorId);
     if (!picks.length) return 0;
     return await contactDonors(SYSTEM_ACTOR, search, picks);

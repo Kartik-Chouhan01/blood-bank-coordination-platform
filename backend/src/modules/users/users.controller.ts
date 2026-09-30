@@ -4,6 +4,8 @@ import { actorFromRequest } from '../../utils/actor.js';
 import { sendSuccess } from '../../utils/respond.js';
 import * as usersService from './users.service.js';
 import * as staffInvites from './staffInvites.service.js';
+import { deleteOwnAccount } from './accountDeletion.service.js';
+import { clearRefreshCookie } from '../auth/authCookies.js';
 
 export const listUsers: RequestHandler = async (req, res) => {
   const { items, meta } = await usersService.listUsers(req.validatedQuery as ListUsersQuery);
@@ -23,6 +25,12 @@ export const updateUserStatus: RequestHandler = async (req, res) => {
 
 export const updateMe: RequestHandler = async (req, res) => {
   sendSuccess(res, await usersService.updateOwnAccount(actorFromRequest(req), req.body));
+};
+
+export const deleteMe: RequestHandler = async (req, res) => {
+  await deleteOwnAccount(actorFromRequest(req), req.body);
+  clearRefreshCookie(res);
+  sendSuccess(res, null);
 };
 
 export const inviteStaff: RequestHandler = async (req, res) => {

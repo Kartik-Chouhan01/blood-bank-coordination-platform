@@ -16,6 +16,7 @@ import {
   type Urgency,
 } from '@bbms/shared';
 import { env } from '../../config/env.js';
+import { settings } from '../settings/settings.service.js';
 import {
   bucketFor,
   bucketKeys,
@@ -80,8 +81,8 @@ export async function getPublicStats(now = new Date()): Promise<PublicStats> {
       bloodGroup,
       level: stockLevel(
         units.get(bloodGroup) ?? 0,
-        env.PUBLIC_STOCK_LOW_BELOW,
-        env.PUBLIC_STOCK_GOOD_FROM,
+        settings().publicStockLowBelow,
+        settings().publicStockGoodFrom,
       ),
     })),
     updatedAt: now.toISOString(),
@@ -108,7 +109,7 @@ export async function getStaffOverview(actor: Actor, query: OverviewQuery): Prom
   const bankId = scopeBank(actor, query.bloodBankId);
   const bankScope = bankId ? { bloodBankId: bankId } : {};
   const open = { status: { $in: [...OPEN_REQUEST_STATUSES] } };
-  const soon = new Date(now.getTime() + env.EXPIRY_WARNING_DAYS * DAY_MS);
+  const soon = new Date(now.getTime() + settings().expiryWarningDays * DAY_MS);
   const canVerifyHospitals =
     actor.role !== 'SYSTEM' && hasPermission(actor.role, 'hospitals:verify');
 
@@ -166,7 +167,7 @@ export async function getStaffOverview(actor: Actor, query: OverviewQuery): Prom
       units: units.get(bloodGroup) ?? 0,
     })),
     expiringSoon,
-    expiryWarningDays: env.EXPIRY_WARNING_DAYS,
+    expiryWarningDays: settings().expiryWarningDays,
     awaitingIssue,
     outreach: { awaitingReply, interested },
     verification: { hospitalsPending, donorsPending },

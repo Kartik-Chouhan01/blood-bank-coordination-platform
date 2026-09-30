@@ -31,6 +31,12 @@ export function LoginPage() {
 
   return (
     <AuthCard title="Sign in" description="Welcome back. Sign in to continue.">
+      {redirect.reason === 'account-deleted' && !formError && (
+        <Alert tone="success" className="mb-5">
+          Your account has been deleted and your personal details removed. Thank you for having been
+          a donor.
+        </Alert>
+      )}
       {redirect.reason === 'expired' && !formError && (
         <Alert tone="info" className="mb-5">
           Your session has ended. Please sign in again.

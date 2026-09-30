@@ -15,6 +15,7 @@ import { AppError } from '../../utils/AppError.js';
 import { withTransaction } from '../../utils/mongoose.js';
 import type { Actor } from '../../utils/actor.js';
 import { recordAudit } from '../audit/audit.service.js';
+import { assertStaffBankActive } from '../bloodBanks/bankAccess.js';
 import { DonorProfileModel, cityKeyOf } from '../donors/donorProfile.model.js';
 import { HospitalModel } from '../hospitals/hospital.model.js';
 import { UserModel, type User } from '../users/user.model.js';
@@ -209,11 +210,19 @@ export async function login(input: LoginInput, context: RequestContext): Promise
     : (await burnPasswordCheck(input.password), false);
 
   if (!user || !passwordOk) {
-    await recordFailedLogin(input.email);
+    const locked = await recordFailedLogin(input.email);
+    // A lockout on a real account is a security event; unknown emails leave no trace by design.
+    if (locked && user) {
+      await recordAudit(
+        { ...context, userId: null, role: 'SYSTEM' },
+        { action: 'ACCOUNT_LOCKED', entityType: 'User', entityId: user._id },
+      );
+    }
     throw invalidCredentials();
   }
   // Only reveal account status to someone who proved they know the password.
   if (user.accountStatus !== 'ACTIVE') throw accountSuspended();
+  await assertStaffBankActive(user);
 
   await clearLoginThrottle(input.email);
   await UserModel.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });
@@ -246,6 +255,7 @@ export async function refreshSession(
     await revokeRefreshToken(refresh.token);
     throw new AppError(401, ERROR_CODES.SESSION_EXPIRED, 'Your session has ended. Please sign in.');
   }
+  await assertStaffBankActive(user);
   return buildSession(user, refresh);
 }
 

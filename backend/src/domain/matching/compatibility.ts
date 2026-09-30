@@ -85,6 +85,48 @@ export function getCompatibleDonorGroups(
   return [recipient, ...substitutes];
 }
 
+/**
+ * Groups that can serve (almost) every recipient of a component. Conserving them means not
+ * suggesting them while other suitable units exist.
+ */
+export const UNIVERSAL_DONOR_GROUPS: Record<ComponentType, readonly BloodGroup[]> = {
+  WHOLE_BLOOD: [],
+  PRBC: ['O-'],
+  PLASMA: ['AB+', 'AB-'],
+  CRYO: ['AB+', 'AB-'],
+  PLATELETS: ['AB-'],
+};
+
+/**
+ * Donor groups offered for a request under the substitution policy: every compatible group
+ * (identical first), or only the identical group when substitution is switched off.
+ */
+export function offeredDonorGroups(
+  recipient: BloodGroup,
+  component: ComponentType,
+  allowSubstitutes: boolean,
+): BloodGroup[] {
+  return allowSubstitutes ? getCompatibleDonorGroups(recipient, component) : [recipient];
+}
+
+/**
+ * Suggested selection of `shortfall` units from a ranked list: when conserving, universal-donor
+ * units are only suggested if the others cannot cover the shortfall.
+ */
+export function preselect<T extends { bloodGroup: BloodGroup }>(
+  ranked: readonly T[],
+  shortfall: number,
+  recipient: BloodGroup,
+  component: ComponentType,
+  conserveUniversal: boolean,
+): T[] {
+  if (!conserveUniversal) return ranked.slice(0, shortfall);
+  const universal = (unit: T) =>
+    unit.bloodGroup !== recipient && UNIVERSAL_DONOR_GROUPS[component].includes(unit.bloodGroup);
+  const ordinary = ranked.filter((u) => !universal(u));
+  return [...ordinary, ...ranked.filter(universal)].slice(0, shortfall);
+}
+
 /** Position of a donor group in the preference order (lower is preferred); -1 if incompatible. */
 export function substitutionRank(
   donor: BloodGroup,

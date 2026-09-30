@@ -38,6 +38,11 @@ export const AUDIT_ACTIONS = [
   'REQUEST_RECEIPT_CONFIRMED',
   'DONOR_OUTREACH_STARTED',
   'DONOR_OUTREACH_RESPONDED',
+  'SETTINGS_UPDATED',
+  'ACCOUNT_LOCKED',
+  'ACCOUNT_DELETED',
+  'DONOR_AVAILABILITY_CHANGED',
+  'DONOR_CONTACT_PREFERENCES_CHANGED',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -51,6 +56,7 @@ export const AUDIT_ENTITY_TYPES = [
   'BloodRequest',
   'Allocation',
   'DonorOutreach',
+  'SystemSetting',
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
@@ -90,4 +96,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   REQUEST_RECEIPT_CONFIRMED: 'Receipt confirmed by hospital',
   DONOR_OUTREACH_STARTED: 'Potential donors contacted',
   DONOR_OUTREACH_RESPONDED: 'Donor responded to outreach',
+  SETTINGS_UPDATED: 'System settings changed',
+  ACCOUNT_LOCKED: 'Sign-in locked after failed attempts',
+  ACCOUNT_DELETED: 'Account deleted (anonymised)',
+  DONOR_AVAILABILITY_CHANGED: 'Donor availability changed',
+  DONOR_CONTACT_PREFERENCES_CHANGED: 'Donor contact preferences changed',
 };

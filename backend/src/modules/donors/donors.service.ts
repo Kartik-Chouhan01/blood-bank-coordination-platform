@@ -106,35 +106,76 @@ export async function updateOwnProfile(actor: Actor, input: UpdateDonorProfileIn
   return toDonorSelfView(updated);
 }
 
+/** Availability is the donor's consent to be contacted, so every change is also audited. */
 export async function updateOwnAvailability(actor: Actor, input: UpdateAvailabilityInput) {
   const availableAgainAt = input.availableAgainAt ? new Date(input.availableAgainAt) : null;
-  const donor = await DonorProfileModel.findOneAndUpdate(
-    { userId: actor.userId },
-    {
-      $set: { availabilityStatus: input.status, availableAgainAt },
-      $push: {
-        availabilityHistory: {
-          $each: [{ status: input.status, changedAt: new Date(), availableAgainAt }],
-          $slice: -AVAILABILITY_HISTORY_LIMIT,
+  const donor = await withTransaction(async (session) => {
+    const before = await DonorProfileModel.findOne({ userId: actor.userId })
+      .select('availabilityStatus')
+      .session(session)
+      .lean();
+    if (!before) throw AppError.notFound('Donor profile');
+    const updated = await DonorProfileModel.findOneAndUpdate(
+      { _id: before._id },
+      {
+        $set: { availabilityStatus: input.status, availableAgainAt },
+        $push: {
+          availabilityHistory: {
+            $each: [{ status: input.status, changedAt: new Date(), availableAgainAt }],
+            $slice: -AVAILABILITY_HISTORY_LIMIT,
+          },
         },
       },
-    },
-    { returnDocument: 'after' },
-  ).lean();
-  if (!donor) throw AppError.notFound('Donor profile');
+      { returnDocument: 'after', session },
+    ).lean();
+    await recordAudit(
+      actor,
+      {
+        action: 'DONOR_AVAILABILITY_CHANGED',
+        entityType: 'DonorProfile',
+        entityId: before._id,
+        before: { availabilityStatus: before.availabilityStatus },
+        after: {
+          availabilityStatus: input.status,
+          availableAgainAt: availableAgainAt?.toISOString() ?? null,
+        },
+      },
+      session,
+    );
+    return updated!;
+  });
   return toDonorSelfView(donor);
 }
 
+/** Contact preferences are consent: audited with the before/after choices (no personal data). */
 export async function updateOwnNotificationPreferences(
   actor: Actor,
   input: NotificationPreferences,
 ) {
-  const donor = await DonorProfileModel.findOneAndUpdate(
-    { userId: actor.userId },
-    { $set: { notificationPreferences: input } },
-    { returnDocument: 'after', runValidators: true },
-  ).lean();
-  if (!donor) throw AppError.notFound('Donor profile');
+  const donor = await withTransaction(async (session) => {
+    const before = await DonorProfileModel.findOne({ userId: actor.userId })
+      .select('notificationPreferences')
+      .session(session)
+      .lean();
+    if (!before) throw AppError.notFound('Donor profile');
+    const updated = await DonorProfileModel.findOneAndUpdate(
+      { _id: before._id },
+      { $set: { notificationPreferences: input } },
+      { returnDocument: 'after', runValidators: true, session },
+    ).lean();
+    await recordAudit(
+      actor,
+      {
+        action: 'DONOR_CONTACT_PREFERENCES_CHANGED',
+        entityType: 'DonorProfile',
+        entityId: before._id,
+        before: { ...before.notificationPreferences },
+        after: { ...input },
+      },
+      session,
+    );
+    return updated!;
+  });
   return toDonorSelfView(donor);
 }
 

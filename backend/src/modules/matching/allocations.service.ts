@@ -6,7 +6,8 @@ import {
   type ReleaseAllocationInput,
   type ReserveUnitsInput,
 } from '@bbms/shared';
-import { getCompatibleDonorGroups } from '../../domain/matching/compatibility.js';
+import { offeredDonorGroups, preselect } from '../../domain/matching/compatibility.js';
+import { settings } from '../settings/settings.service.js';
 import { rankUnits } from '../../domain/matching/ranking.js';
 import { daysToExpiry } from '../../domain/inventory/expiry.js';
 import { ALLOCATABLE_REQUEST_STATUSES } from '../../domain/requests/requestStateMachine.js';
@@ -45,7 +46,13 @@ export function usableStockFilter(request: BloodRequest, now = new Date()) {
     status: 'AVAILABLE',
     testingStatus: 'PASSED',
     componentType: request.componentType,
-    bloodGroup: { $in: getCompatibleDonorGroups(request.bloodGroup, request.componentType) },
+    bloodGroup: {
+      $in: offeredDonorGroups(
+        request.bloodGroup,
+        request.componentType,
+        settings().allowCompatibleSubstitutes,
+      ),
+    },
     expiryDate: { $gt: usableUntil(request, now) },
   } as const;
 }
@@ -68,7 +75,11 @@ export async function getInventoryCandidates(
 ): Promise<InventoryCandidates> {
   const request = await findRequest(requestId);
   const shortfall = request.unitsRequested - request.unitsAllocated;
-  const compatibleGroups = getCompatibleDonorGroups(request.bloodGroup, request.componentType);
+  const compatibleGroups = offeredDonorGroups(
+    request.bloodGroup,
+    request.componentType,
+    settings().allowCompatibleSubstitutes,
+  );
   if (!ALLOCATABLE_REQUEST_STATUSES.includes(request.status) || shortfall <= 0) {
     return {
       requestId,
@@ -110,10 +121,13 @@ export async function getInventoryCandidates(
     compatibleGroups,
     candidates,
     // A suggestion only — staff confirm the selection before anything is reserved.
-    preselectedUnitIds: candidates
-      .filter((c) => c.canReserve)
-      .slice(0, shortfall)
-      .map((c) => c.unitId),
+    preselectedUnitIds: preselect(
+      candidates.filter((c) => c.canReserve),
+      shortfall,
+      request.bloodGroup,
+      request.componentType,
+      settings().conserveUniversalDonors,
+    ).map((c) => c.unitId),
     truncated: ranked.length > CANDIDATE_LIMIT,
   };
 }

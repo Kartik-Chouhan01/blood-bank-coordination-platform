@@ -23,11 +23,12 @@ coordinating hospitals, blood banks, administrators and potential donors.
 | 7     | Matching: compatibility, unit allocation, donor outreach                                                    | ✅ Done |
 | 8     | Notifications: in-app and email, header bell, notifications page                                            | ✅ Done |
 | 9     | Dashboards & analytics: staff overview, analytics, hospital figures, public stock levels                    | ✅ Done |
-| 10    | Security & audit review                                                                                     | ⏭ Next  |
-| 11    | Test hardening, seed data, OpenAPI docs, deployment config                                                  | Planned |
+| 10    | Security & audit review, system settings, account deletion                                                  | ✅ Done |
+| 11    | Test hardening, seed data, OpenAPI docs, deployment config                                                  | ⏭ Next  |
 
 The full design — entities, APIs, state machines, matching algorithms and **every deliberate change
-from the original specification** — is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+from the original specification** — is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The security
+review (threat model, controls, findings) is in [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Tech stack
 

@@ -10,22 +10,30 @@ import { bloodUnitsRouter, donationsRouter } from './modules/inventory/inventory
 import { donorOutreachRouter, matchingRouter } from './modules/matching/matching.routes.js';
 import { notificationsRouter } from './modules/notifications/notifications.routes.js';
 import { requestsRouter } from './modules/requests/requests.routes.js';
+import { settingsRouter } from './modules/settings/settings.routes.js';
 import { usersRouter } from './modules/users/users.routes.js';
 
-/** Every feature module mounts its router here; nothing else registers routes. */
-export const apiRouter = Router();
+/**
+ * Every feature module is mounted here and nowhere else. Exported so the security tests can walk
+ * every route and prove it is protected.
+ */
+export const API_MOUNTS: readonly (readonly [string, Router])[] = [
+  ['/health', healthRouter],
+  ['/auth', authRouter],
+  ['/users', usersRouter],
+  ['/donors', donorsRouter],
+  ['/hospitals', hospitalsRouter],
+  ['/blood-banks', bloodBanksRouter],
+  ['/audit-logs', auditLogsRouter],
+  ['/donations', donationsRouter],
+  ['/blood-units', bloodUnitsRouter],
+  ['/requests', requestsRouter],
+  ['/matching', matchingRouter],
+  ['/donor-outreach', donorOutreachRouter],
+  ['/notifications', notificationsRouter],
+  ['/dashboard', dashboardRouter],
+  ['/settings', settingsRouter],
+];
 
-apiRouter.use('/health', healthRouter);
-apiRouter.use('/auth', authRouter);
-apiRouter.use('/users', usersRouter);
-apiRouter.use('/donors', donorsRouter);
-apiRouter.use('/hospitals', hospitalsRouter);
-apiRouter.use('/blood-banks', bloodBanksRouter);
-apiRouter.use('/audit-logs', auditLogsRouter);
-apiRouter.use('/donations', donationsRouter);
-apiRouter.use('/blood-units', bloodUnitsRouter);
-apiRouter.use('/requests', requestsRouter);
-apiRouter.use('/matching', matchingRouter);
-apiRouter.use('/donor-outreach', donorOutreachRouter);
-apiRouter.use('/notifications', notificationsRouter);
-apiRouter.use('/dashboard', dashboardRouter);
+export const apiRouter = Router();
+for (const [path, router] of API_MOUNTS) apiRouter.use(path, router);
