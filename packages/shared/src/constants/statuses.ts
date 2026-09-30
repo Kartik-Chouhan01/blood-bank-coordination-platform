@@ -53,3 +53,7 @@ export const OUTREACH_STATUSES = [
   'DONATED',
 ] as const;
 export type OutreachStatus = (typeof OUTREACH_STATUSES)[number];
+
+/** Whether donor outreach has been run for a request (outreach is an activity, not a request state). */
+export const REQUEST_OUTREACH_STATUSES = ['NONE', 'ACTIVE', 'CLOSED'] as const;
+export type RequestOutreachStatus = (typeof REQUEST_OUTREACH_STATUSES)[number];

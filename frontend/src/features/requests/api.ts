@@ -21,6 +21,7 @@ export const requestsApi = {
     apiPatch<BloodRequestDetail>(`/requests/${id}`, input),
   escalate: (id: string, input: EscalateRequestInput) =>
     apiPost<BloodRequestDetail>(`/requests/${id}/escalate`, input),
+  confirmReceipt: (id: string) => apiPost<BloodRequestDetail>(`/requests/${id}/confirm-receipt`),
   // Staff
   list: (query: Partial<ListRequestsQuery>) => apiGetPage<BloodRequestSummary>('/requests', query),
   stats: () => apiGet<RequestStats>('/requests/stats'),

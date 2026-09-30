@@ -4,7 +4,7 @@ import type { RequestStatus } from '@bbms/shared';
  * Who may trigger a request transition:
  *  - HOSPITAL: the requesting hospital (cancel)
  *  - STAFF: blood-bank staff/admin (review, cancel)
- *  - ALLOCATION: the allocation workflow as units are reserved/released/issued (Phase 7)
+ *  - ALLOCATION: the allocation workflow as units are reserved/released/issued
  *  - SYSTEM: automatic steps (emergency auto-approval, expiry)
  */
 export type RequestActor = 'HOSPITAL' | 'STAFF' | 'ALLOCATION' | 'SYSTEM';
@@ -30,6 +30,8 @@ export const REQUEST_TRANSITIONS: readonly RequestRule[] = [
   { from: 'PARTIALLY_ALLOCATED', to: 'ALLOCATED', by: 'ALLOCATION', requiresReason: false },
   { from: 'PARTIALLY_ALLOCATED', to: 'APPROVED', by: 'ALLOCATION', requiresReason: true },
   { from: 'ALLOCATED', to: 'PARTIALLY_ALLOCATED', by: 'ALLOCATION', requiresReason: true },
+  // Every reservation released (e.g. a single-unit request whose unit was released).
+  { from: 'ALLOCATED', to: 'APPROVED', by: 'ALLOCATION', requiresReason: true },
   { from: 'ALLOCATED', to: 'FULFILLED', by: 'ALLOCATION', requiresReason: false },
   { from: 'FULFILLED', to: 'COMPLETED', by: 'HOSPITAL', requiresReason: false },
 
@@ -55,4 +57,16 @@ export function findRequestTransition(
 
 export function canTransition(from: RequestStatus, to: RequestStatus, by: RequestActor): boolean {
   return !!findRequestTransition(from, to, by);
+}
+
+/** Statuses in which units may be reserved for a request. */
+export const ALLOCATABLE_REQUEST_STATUSES: readonly RequestStatus[] = [
+  'APPROVED',
+  'PARTIALLY_ALLOCATED',
+];
+
+/** The allocation status a request should be in for its current reserved/issued unit count. */
+export function statusForAllocatedUnits(allocated: number, requested: number): RequestStatus {
+  if (allocated <= 0) return 'APPROVED';
+  return allocated < requested ? 'PARTIALLY_ALLOCATED' : 'ALLOCATED';
 }

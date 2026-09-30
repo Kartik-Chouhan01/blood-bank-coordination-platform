@@ -94,23 +94,23 @@ SystemSetting (typed key/value; defaults live in code)
 
 Envelope: `{ success: true, data, meta? }` or `{ success: false, message, errorCode, details?, requestId? }`.
 
-| Base path             | Highlights                                                                                                                                                                                                   | Access                                       |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| `/api/health`         | DB-aware liveness (503 when degraded)                                                                                                                                                                        | public — **built**                           |
-| `/api/auth`           | register/donor, register/hospital, login, refresh, logout, logout-all, verify-email, forgot/reset-password, me                                                                                               | public / authenticated — **built**           |
-| `/api/users`          | list, get, change status (reason required), `me`, `staff` (invite), `:id/resend-invite`                                                                                                                      | ADMIN — **built**                            |
-| `/api/donors`         | `me` (get/patch, availability, notification-preferences); list/get/verification/blood-group — **built**; `me/donations`, `me/opportunities` arrive with Phases 5–7                                           | self / STAFF, ADMIN                          |
-| `/api/hospitals`      | `me` (get/patch); list/get (STAFF, ADMIN); `:id/verification` (ADMIN) — **built**                                                                                                                            | self / STAFF, ADMIN                          |
-| `/api/blood-banks`    | list/get (STAFF, ADMIN); create/update incl. deactivate (ADMIN) — **built**                                                                                                                                  | STAFF, ADMIN                                 |
-| `/api/donations`      | record (creates units), list, get, `:id/start-testing`, `:id/test-result`; donors: `GET /donors/me/donations` — **built**                                                                                    | STAFF (own bank), ADMIN                      |
-| `/api/blood-units`    | filtered list (earliest expiry first), `summary`, detail with history and allowed actions, `POST :id/transitions` — **built**                                                                                | read: STAFF, ADMIN; change: own bank / ADMIN |
-| `/api/requests`       | hospital: create, `mine`, `mine/stats`, edit (PENDING), `:id/escalate`; staff: queue (priority-sorted), `stats`, `:id/review`; both: `:id`, `:id/cancel` — **built**; `confirm-receipt` arrives with Phase 7 | HOSPITAL (own) / STAFF, ADMIN                |
-| `/api/matching`       | inventory candidates, allocate, release, issue, donor search, outreach list                                                                                                                                  | STAFF, ADMIN                                 |
-| `/api/donor-outreach` | mine, respond                                                                                                                                                                                                | DONOR (own)                                  |
-| `/api/notifications`  | mine, unread-count, read, read-all                                                                                                                                                                           | owner                                        |
-| `/api/dashboard`      | donor / hospital / admin / analytics / public-stats                                                                                                                                                          | role-scoped                                  |
-| `/api/audit-logs`     | filtered, paginated, read-only list (action, record type, record id, actor, date range) — **built**                                                                                                          | ADMIN                                        |
-| `/api/settings`       | get / patch (reason required, audited)                                                                                                                                                                       | ADMIN                                        |
+| Base path             | Highlights                                                                                                                                                                                                                   | Access                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `/api/health`         | DB-aware liveness (503 when degraded)                                                                                                                                                                                        | public — **built**                           |
+| `/api/auth`           | register/donor, register/hospital, login, refresh, logout, logout-all, verify-email, forgot/reset-password, me                                                                                                               | public / authenticated — **built**           |
+| `/api/users`          | list, get, change status (reason required), `me`, `staff` (invite), `:id/resend-invite`                                                                                                                                      | ADMIN — **built**                            |
+| `/api/donors`         | `me` (get/patch, availability, notification-preferences), `me/donations`; list/get/verification/blood-group — **built** (requests for help live under `/api/donor-outreach`)                                                 | self / STAFF, ADMIN                          |
+| `/api/hospitals`      | `me` (get/patch); list/get (STAFF, ADMIN); `:id/verification` (ADMIN) — **built**                                                                                                                                            | self / STAFF, ADMIN                          |
+| `/api/blood-banks`    | list/get (STAFF, ADMIN); create/update incl. deactivate (ADMIN) — **built**                                                                                                                                                  | STAFF, ADMIN                                 |
+| `/api/donations`      | record (creates units), list, get, `:id/start-testing`, `:id/test-result`; donors: `GET /donors/me/donations` — **built**                                                                                                    | STAFF (own bank), ADMIN                      |
+| `/api/blood-units`    | filtered list (earliest expiry first), `summary`, detail with history and allowed actions, `POST :id/transitions` — **built**                                                                                                | read: STAFF, ADMIN; change: own bank / ADMIN |
+| `/api/requests`       | hospital: create, `mine`, `mine/stats`, edit (PENDING), `:id/escalate`, `:id/confirm-receipt`; staff: queue (priority-sorted), `stats`, `:id/review`; both: `:id` (incl. allocations), `:id/cancel` — **built**              | HOSPITAL (own) / STAFF, ADMIN                |
+| `/api/matching`       | `requests/:id/inventory` (ranked candidates), `requests/:id/allocations` (reserve), `allocations/:id/release`, `allocations/:id/issue`, `requests/:id/donors` (search), `requests/:id/outreach` (list / contact) — **built** | STAFF, ADMIN (change: own bank / ADMIN)      |
+| `/api/donor-outreach` | `mine`, `:id/respond` — **built**                                                                                                                                                                                            | DONOR (own)                                  |
+| `/api/notifications`  | mine, unread-count, read, read-all                                                                                                                                                                                           | owner                                        |
+| `/api/dashboard`      | donor / hospital / admin / analytics / public-stats                                                                                                                                                                          | role-scoped                                  |
+| `/api/audit-logs`     | filtered, paginated, read-only list (action, record type, record id, actor, date range) — **built**                                                                                                                          | ADMIN                                        |
+| `/api/settings`       | get / patch (reason required, audited)                                                                                                                                                                                       | ADMIN                                        |
 
 Self-service always uses `/me` routes, so a client never supplies its own owner id (IDOR by design).
 
@@ -173,8 +173,8 @@ COLLECTED ──staff──▶ UNDER_TESTING ──test PASSED──▶ AVAILABL
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
 | Staff (own bank) / admin | send to testing; discard with reason; record disposal of expired units                                                   |
 | Testing result           | UNDER_TESTING → AVAILABLE (passed) or DISCARDED (failed) — the **only** route to AVAILABLE                               |
-| Allocation (Phase 7)     | reserve / release / issue / receive — the only route to RESERVED/ISSUED/RECEIVED                                         |
-| System (expiry job)      | → EXPIRED                                                                                                                |
+| Allocation               | reserve / release / issue / receive — the only route to RESERVED/ISSUED/RECEIVED                                         |
+| System (expiry job)      | → EXPIRED (a RESERVED unit's allocation is released in the same transaction)                                             |
 | Admin override           | DISCARDED → UNDER_TESTING (discarded in error); must be re-tested; flagged in history and audited as `WORKFLOW_OVERRIDE` |
 
 Expiry is enforced by date in every query (usable stock = AVAILABLE **and** `expiryDate > now`), so
@@ -186,7 +186,9 @@ Implemented in `backend/src/domain/requests/requestStateMachine.ts` (pure, unit-
 change goes through `transitionRequest()` (compare-and-set on status + history + audit).
 
 ```text
-PENDING ──staff approve──▶ APPROVED ──allocation──▶ PARTIALLY_ALLOCATED ⇄ ALLOCATED ──all issued──▶ FULFILLED ──hospital confirms──▶ COMPLETED
+PENDING ──staff approve──▶ APPROVED ⇄ PARTIALLY_ALLOCATED ⇄ ALLOCATED ──all issued──▶ FULFILLED ──hospital confirms──▶ COMPLETED
+                             ▲                                  │ (releases move back down; status follows reserved+issued count)
+                             └──────────────────────────────────┘
    │ ▲ system: EMERGENCY auto-approve (reason recorded)
    ├──staff reject (reason)──▶ REJECTED
    └──hospital or staff cancel (reason), from any open status──▶ CANCELLED
@@ -198,9 +200,13 @@ open + required-by passed + grace period + nothing issued ──system──▶ 
 - The staff queue sorts by stored `urgencyRank` (EMERGENCY 0, URGENT 1, ROUTINE 2), then earliest
   `requiredBy`; open requests past required-by are flagged **overdue** and stay actionable for
   `REQUEST_EXPIRY_GRACE_HOURS` (default 2) before the sweep expires them.
-- Allocation states, FULFILLED and COMPLETED are reachable only through the Phase 7 workflow.
+- Allocation states, FULFILLED and COMPLETED are reachable only through the allocation workflow
+  (`modules/matching/allocationWorkflow.ts`). `unitsAllocated` counts reserved + issued units; the
+  status is derived from it (`statusForAllocatedUnits`).
+- Cancelling or expiring a request releases its reserved units in the same transaction; issued
+  units stay issued and the hospital can still confirm their receipt.
 
-## 8. Inventory matching & concurrency _(Phase 7)_
+## 8. Inventory matching & concurrency
 
 1. `BloodCompatibilityService.getCompatibleDonorGroups(recipientGroup, componentType)` — **component-aware**:
    red cells follow standard ABO/Rh donor rules; **plasma is inverted** (AB is the universal plasma
@@ -214,9 +220,17 @@ open + required-by passed + grace period + nothing issued ──system──▶ 
    `findOneAndUpdate({_id, status:'AVAILABLE', expiryDate:{$gt:now}})` (null ⇒ abort with
    `UNIT_NOT_AVAILABLE`), insert Allocation (partial unique index = second guard), guarded request
    update (`version` + `unitsAllocated ≤ requested - n`), audit log. Notifications are sent after commit.
-6. Reservations carry `holdUntil`; a job releases stale holds.
+6. Reservations carry `holdUntil` (`RESERVATION_HOLD_HOURS`, default 24); the hold sweep releases
+   stale ones. Issuing re-checks the expiry date, so an expired unit can never be handed over.
+7. Staff see every bank's candidates but reserve, issue and release only their own bank's units.
 
-## 9. Donor matching _(Phase 7)_
+Built as described. As implemented, step 5's per-unit guard is `transitionUnit()`'s compare-and-set
+on AVAILABLE inside the transaction (after an in-transaction read that re-checks status, testing,
+expiry and compatibility); a duplicate-key error from the partial unique index is reported as
+`UNIT_NOT_AVAILABLE`. Concurrency is covered by integration tests (same unit for two requests; two
+staff over-allocating one request).
+
+## 9. Donor matching
 
 Hard filters ("system criteria"): compatible group, AVAILABLE, verified, active account, cooldown
 elapsed by `requiredBy` (configurable), preferences permit contact, weekly contact cap, not already
@@ -226,6 +240,16 @@ Top N (≈ shortfall × 3) get a `DonorOutreach` record and a notification. Staf
 group/area/≈distance/availability; contact details are revealed to blood-bank staff only after a
 donor responds INTERESTED. Hospitals never see donor identity. Wording is always
 "Potential donor based on system criteria".
+
+As built (`modules/matching/donorMatching.service.ts`, scoring in `domain/matching/ranking.ts`):
+radius `DONOR_SEARCH_RADIUS_KM` (25) / `DONOR_SEARCH_RADIUS_EMERGENCY_KM` (50); donors without an
+approximate location are matched by the hospital's city; score weights proximity 40, exact group
+20, staff-confirmed group 10, time since contact allowed 15, response history 15 (no history is
+neutral). Suggested contacts = shortfall × `OUTREACH_DONORS_PER_UNIT` (3), at most
+`OUTREACH_MAX_DONORS` (30) per request. Staff confirm the selection; EMERGENCY requests contact the
+top suggestions automatically only when compatible stock cannot cover them. Until notifications
+exist (Phase 8), donors see requests for help on their dashboard; unanswered outreach becomes
+NO_RESPONSE when the request closes or passes required-by.
 
 ## 10. Security
 
@@ -253,8 +277,8 @@ email, phone and date of birth · secrets only from environment, validated at st
 | 4   | Hospitals, blood banks, verification, audit module                                     | **done** |
 | 5   | Inventory: donations, units, testing, unit state machine, expiry job                   | **done** |
 | 6   | Requests lifecycle                                                                     | **done** |
-| 7   | Matching: compatibility, allocation, donor outreach                                    | next     |
-| 8   | Notifications                                                                          |          |
+| 7   | Matching: compatibility, allocation, donor outreach                                    | **done** |
+| 8   | Notifications                                                                          | next     |
 | 9   | Dashboards & analytics                                                                 |          |
 | 10  | Security & audit review                                                                |          |
 | 11  | Test hardening, seed data, OpenAPI docs, deployment config                             |          |
@@ -373,3 +397,18 @@ Approved deviations, with rationale. New items are appended as phases land.
 | A55 | Staff request detail shows **exact-match usable stock** as a hint; compatible-group matching comes with Phase 7.                                                             | Useful for review now without pre-empting the compatibility service.                      |
 | A56 | Requests from unverified or closed hospitals are refused with an explanation, and the hospital's new-request page explains why instead of showing the form.                  | Clear feedback instead of a failed submit.                                                |
 | A57 | Wording fix: the UI no longer claims staff are "alerted" for emergencies until notifications exist (Phase 8); it says the request is at the top of the staff queue.          | The UI must not claim something the system doesn't do yet.                                |
+
+### Added during Phase 7
+
+| #   | Change                                                                                                                                                                                                                | Why                                                                                           |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| A58 | Compatibility tables per component: red cells standard ABO/Rh; plasma **and cryoprecipitate** inverted (Rh ignored); whole blood identical only; platelets plasma-ABO-compatible with Rh-negative kept Rh-negative.   | Conservative administrative defaults; every table is covered by unit tests (S1, S2).          |
+| A59 | Substitutes are offered with Rh-positive before Rh-negative, and universal donors (O− red cells, AB plasma) last.                                                                                                     | Conserves the groups that patients without alternatives depend on.                            |
+| A60 | New rule `ALLOCATED → APPROVED` (by allocation, with reason) for when every reservation of a request is released.                                                                                                     | A single-unit request whose only unit is released must return to approved.                    |
+| A61 | Staff may reserve only their own bank's units (other banks' candidates are listed but not selectable); administrators may reserve any.                                                                                | Consistent with A45: visibility across the network, changes only by the owning bank.          |
+| A62 | Issuing refuses a unit past its expiry date even before the sweep marks it, and the hold/expiry jobs release reservations transactionally.                                                                            | An expired unit can never leave the bank; a request never counts a unit it cannot receive.    |
+| A63 | Hospitals see units reserved/issued for their request (code, group, bank, expiry) but not who reserved them or released reservations; they confirm receipt for all issued units at once.                              | Enough to receive units physically; internal staff activity stays internal.                   |
+| A64 | Donor search returns no names, contact details or coordinates; contact appears only for INTERESTED (or DONATED) outreach. Donors see only group, component, urgency, timing, city and ≈distance — never the hospital. | Data minimisation on both sides of the match.                                                 |
+| A65 | Donors can change their answer (interested ⇄ declined) while the request is open; marking outreach DONATED is deferred to a later phase.                                                                              | People's plans change; linking a donation to an outreach needs more workflow than this phase. |
+| A66 | Emergency auto-outreach runs after the request commits and never fails the request; its outreach is recorded with no human actor.                                                                                     | Raising an emergency request must not depend on the donor search succeeding.                  |
+| A67 | The request's `exactMatchAvailable` hint (A55) is replaced by `stock { exact, compatibleSubstitutes }`, shown to staff while the request is open, including during review.                                            | Reviewers see realistic availability, using the same filter the allocation uses.              |

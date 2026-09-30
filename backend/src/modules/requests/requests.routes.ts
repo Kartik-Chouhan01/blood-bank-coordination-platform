@@ -58,6 +58,13 @@ requestsRouter.post(
   controller.escalate,
 );
 
+requestsRouter.post(
+  '/:id/confirm-receipt',
+  authorize('hospital:self'),
+  validate({ params: idParams }),
+  controller.confirmReceipt,
+);
+
 // Staff
 requestsRouter.get(
   '/',

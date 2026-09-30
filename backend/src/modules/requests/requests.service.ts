@@ -14,14 +14,22 @@ import {
   type ReviewRequestInput,
   type UpdateRequestInput,
 } from '@bbms/shared';
-import { canTransition } from '../../domain/requests/requestStateMachine.js';
+import {
+  ALLOCATABLE_REQUEST_STATUSES,
+  canTransition,
+} from '../../domain/requests/requestStateMachine.js';
 import { AppError } from '../../utils/AppError.js';
 import type { Actor } from '../../utils/actor.js';
 import { withTransaction } from '../../utils/mongoose.js';
 import { buildPaginationMeta, pageToSkip } from '../../utils/pagination.js';
 import { recordAudit } from '../audit/audit.service.js';
 import { HospitalModel } from '../hospitals/hospital.model.js';
-import { BloodUnitModel } from '../inventory/bloodUnit.model.js';
+import {
+  confirmReceiptInSession,
+  releaseAllForRequestInSession,
+} from '../matching/allocationWorkflow.js';
+import { countUsableStock, loadAllocationViews } from '../matching/allocations.service.js';
+import { autoOutreachIfShort } from '../matching/donorMatching.service.js';
 import { nextSequence } from '../inventory/counter.model.js';
 import { BloodRequestModel, urgencyRankOf, type BloodRequest } from './bloodRequest.model.js';
 import { loadRequestLookups, toRequestDetail, toRequestSummary } from './request.presenter.js';
@@ -59,15 +67,27 @@ async function findVisibleRequest(actor: Actor, id: string) {
   return { request, isOwner: hospitalId !== null };
 }
 
-function actionsFor(request: BloodRequest, isOwner: boolean, staff: boolean): RequestAction[] {
+function actionsFor(
+  request: BloodRequest,
+  isOwner: boolean,
+  staff: boolean,
+  awaitingReceipt: boolean,
+): RequestAction[] {
   const actions: RequestAction[] = [];
   if (isOwner) {
     if (request.status === 'PENDING') actions.push('EDIT');
     if (OPEN.includes(request.status) && request.urgency !== 'EMERGENCY') actions.push('ESCALATE');
     if (canTransition(request.status, 'CANCELLED', 'HOSPITAL')) actions.push('CANCEL');
+    if (awaitingReceipt) actions.push('CONFIRM_RECEIPT');
   }
   if (staff) {
     if (request.status === 'PENDING') actions.push('REVIEW');
+    if (
+      ALLOCATABLE_REQUEST_STATUSES.includes(request.status) &&
+      request.unitsAllocated < request.unitsRequested
+    ) {
+      actions.push('ALLOCATE', 'OUTREACH');
+    }
     if (canTransition(request.status, 'CANCELLED', 'STAFF')) actions.push('CANCEL');
   }
   return actions;
@@ -75,16 +95,17 @@ function actionsFor(request: BloodRequest, isOwner: boolean, staff: boolean): Re
 
 async function present(actor: Actor, request: BloodRequest, isOwner: boolean) {
   const staff = isStaff(actor);
-  const lookups = await loadRequestLookups([request]);
-  const exactMatch = staff
-    ? await BloodUnitModel.countDocuments({
-        status: 'AVAILABLE',
-        bloodGroup: request.bloodGroup,
-        componentType: request.componentType,
-        expiryDate: { $gt: new Date() },
-      })
-    : null;
-  return toRequestDetail(request, lookups, actionsFor(request, isOwner, staff), exactMatch);
+  const [lookups, allocations, stock] = await Promise.all([
+    loadRequestLookups([request]),
+    loadAllocationViews(actor, request, staff),
+    staff && OPEN.includes(request.status) ? countUsableStock(request) : null,
+  ]);
+  const awaitingReceipt = allocations.some((a) => a.status === 'ISSUED');
+  return toRequestDetail(request, lookups, {
+    allowedActions: actionsFor(request, isOwner, staff, awaitingReceipt),
+    stock,
+    allocations,
+  });
 }
 
 // ─── Hospital actions ────────────────────────────────────────────────────────
@@ -159,6 +180,7 @@ export async function createRequest(actor: Actor, input: CreateRequestInput) {
     }
   });
 
+  if (input.urgency === 'EMERGENCY') await autoOutreachIfShort(requestId);
   return getRequest(actor, requestId.toString());
 }
 
@@ -232,7 +254,7 @@ export async function escalateRequest(actor: Actor, id: string, input: EscalateR
     throw AppError.conflict('Urgency can only be raised, not lowered.', ERROR_CODES.CONFLICT);
   }
 
-  await withTransaction(async (session) => {
+  const autoApproved = await withTransaction(async (session) => {
     const updated = await BloodRequestModel.findOneAndUpdate(
       { _id: request._id, status: request.status, urgency: request.urgency },
       { $set: { urgency: input.urgency, urgencyRank: urgencyRankOf(input.urgency) } },
@@ -264,16 +286,25 @@ export async function escalateRequest(actor: Actor, id: string, input: EscalateR
         reason: AUTO_APPROVAL_REASON,
         session,
       });
+      return true;
     }
+    return false;
   });
+  if (autoApproved) await autoOutreachIfShort(request._id);
   return getRequest(actor, id);
 }
 
+/** Reserved units go back to stock in the same transaction; already-issued units stay issued. */
 export async function cancelRequest(actor: Actor, id: string, input: CancelRequestInput) {
   const { request, isOwner } = await findVisibleRequest(actor, id);
-  // TODO(Phase 7): cancelling a request with reserved units must release them in this transaction.
-  await withTransaction((session) =>
-    transitionRequest({
+  await withTransaction(async (session) => {
+    await releaseAllForRequestInSession(
+      request._id,
+      actor,
+      `Request cancelled: ${input.reason}`,
+      session,
+    );
+    await transitionRequest({
       request,
       to: 'CANCELLED',
       by: isOwner ? 'HOSPITAL' : 'STAFF',
@@ -282,8 +313,16 @@ export async function cancelRequest(actor: Actor, id: string, input: CancelReque
       set: { statusReason: input.reason },
       auditAction: 'REQUEST_CANCELLED',
       session,
-    }),
-  );
+    });
+  });
+  return getRequest(actor, id);
+}
+
+/** The hospital confirms that every issued unit arrived; a fulfilled request becomes COMPLETED. */
+export async function confirmReceipt(actor: Actor, id: string) {
+  const { request, isOwner } = await findVisibleRequest(actor, id);
+  if (!isOwner) throw AppError.forbidden();
+  await withTransaction((session) => confirmReceiptInSession({ request, actor, session }));
   return getRequest(actor, id);
 }
 

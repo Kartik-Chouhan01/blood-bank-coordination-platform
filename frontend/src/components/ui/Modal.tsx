@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { cn } from '@/utils/cn';
 
 interface ModalProps {
   open: boolean;
@@ -7,10 +8,12 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   footer?: ReactNode;
+  /** `wide` for dialogs that hold a table. */
+  size?: 'default' | 'wide';
 }
 
 /** Built on native <dialog>: focus trapping, Escape-to-close and inert background come for free. */
-export function Modal({ open, onClose, title, children, footer }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, size = 'default' }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -30,7 +33,10 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
         event.preventDefault();
         onClose();
       }}
-      className="m-auto w-full max-w-lg rounded-xl bg-white p-0 shadow-xl backdrop:bg-slate-900/50"
+      className={cn(
+        'm-auto w-full rounded-xl bg-white p-0 shadow-xl backdrop:bg-slate-900/50',
+        size === 'wide' ? 'max-w-4xl' : 'max-w-lg',
+      )}
     >
       {open && (
         <>

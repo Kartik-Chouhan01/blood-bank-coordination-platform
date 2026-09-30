@@ -1,6 +1,7 @@
 import type { Types } from 'mongoose';
 import {
   OPEN_REQUEST_STATUSES,
+  type AllocationView,
   type BloodRequestDetail,
   type BloodRequestSummary,
   type RequestAction,
@@ -72,8 +73,11 @@ export function toRequestSummary(
 export function toRequestDetail(
   request: BloodRequest,
   lookups: RequestLookups,
-  allowedActions: RequestAction[],
-  exactMatchAvailable: number | null,
+  extra: {
+    allowedActions: RequestAction[];
+    stock: BloodRequestDetail['stock'];
+    allocations: AllocationView[];
+  },
 ): BloodRequestDetail {
   return {
     ...toRequestSummary(request, lookups),
@@ -90,7 +94,9 @@ export function toRequestDetail(
       by: lookups.user(entry.by),
       reason: entry.reason,
     })),
-    allowedActions,
-    exactMatchAvailable,
+    allowedActions: extra.allowedActions,
+    stock: extra.stock,
+    allocations: extra.allocations,
+    outreachStatus: request.outreachStatus,
   };
 }

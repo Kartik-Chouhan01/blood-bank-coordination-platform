@@ -10,6 +10,7 @@ import {
   ScrollText,
   Send,
   Droplets,
+  HandHeart,
   HeartHandshake,
   LayoutDashboard,
   LogOut,
@@ -44,6 +45,12 @@ function navItemsFor(homePath: string): NavItem[] {
       end: true,
     },
     { to: '/donor/profile', label: 'My profile', icon: UserRound, permission: 'donor:self' },
+    {
+      to: '/donor/requests',
+      label: 'Requests for help',
+      icon: HandHeart,
+      permission: 'donor:self',
+    },
     { to: '/donor/donations', label: 'Donations', icon: Droplets, permission: 'donor:self' },
     { to: '/donor/settings', label: 'Settings', icon: Bell, permission: 'donor:self' },
     {

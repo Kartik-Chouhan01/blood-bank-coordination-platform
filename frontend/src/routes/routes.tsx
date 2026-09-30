@@ -32,6 +32,7 @@ import { RequestsQueuePage } from '@/features/requests/pages/RequestsQueuePage';
 import { DonorOverviewPage } from '@/features/donor/pages/DonorOverviewPage';
 import { DonorProfilePage } from '@/features/donor/pages/DonorProfilePage';
 import { DonorDonationsPage } from '@/features/donor/pages/DonorDonationsPage';
+import { DonorHelpRequestsPage } from '@/features/donor/pages/DonorHelpRequestsPage';
 import { DonorSettingsPage } from '@/features/donor/pages/DonorSettingsPage';
 import { DonorsPage } from '@/features/admin/pages/DonorsPage';
 import { DonorDetailPage } from '@/features/admin/pages/DonorDetailPage';
@@ -86,6 +87,7 @@ export const routes: RouteObject[] = [
               { index: true, element: <DonorOverviewPage /> },
               { path: 'profile', element: <DonorProfilePage /> },
               { path: 'donations', element: <DonorDonationsPage /> },
+              { path: 'requests', element: <DonorHelpRequestsPage /> },
               { path: 'settings', element: <DonorSettingsPage /> },
             ],
           },

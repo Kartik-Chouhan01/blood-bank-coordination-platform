@@ -1,5 +1,8 @@
 import { Link } from 'react-router';
 import { CircleCheck, Circle, ArrowRight } from 'lucide-react';
+import { useApiQuery } from '@/hooks/useApiQuery';
+import { Alert } from '@/components/ui/Alert';
+import { donorOutreachApi } from '@/features/matching/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { DetailList, PageHeader } from '@/components/ui/PageHeader';
@@ -11,6 +14,23 @@ import { formatDate } from '@/utils/format';
 import { AvailabilityCard } from '../components/AvailabilityCard';
 import { donorCompletionSteps } from '../profileCompletion';
 import { useDonorProfile } from '../useDonorProfile';
+
+/** Prompts the donor when a request for help is waiting for their answer. */
+function PendingHelpRequests() {
+  const { data } = useApiQuery(() => donorOutreachApi.mine());
+  const waiting = data?.filter((item) => item.canRespond && item.status === 'NOTIFIED').length ?? 0;
+  if (!waiting) return null;
+  return (
+    <Alert tone="warning" title="A blood bank asked for your help">
+      {waiting === 1
+        ? 'A nearby request needs your blood group.'
+        : `${waiting} nearby requests need your blood group.`}{' '}
+      <Link to="/donor/requests" className="font-medium underline">
+        Review and reply
+      </Link>
+    </Alert>
+  );
+}
 
 export function DonorOverviewPage() {
   const { user } = useAuth();
@@ -29,6 +49,7 @@ export function DonorOverviewPage() {
         title={`Hello, ${user.name.split(' ')[0]}`}
         description="Thank you for being willing to help. Here's your donor summary."
       />
+      <PendingHelpRequests />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">

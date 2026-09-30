@@ -50,3 +50,7 @@ export const review: RequestHandler = async (req, res) => {
 export const cancel: RequestHandler = async (req, res) => {
   sendSuccess(res, await service.cancelRequest(actorFromRequest(req), id(req), req.body));
 };
+
+export const confirmReceipt: RequestHandler = async (req, res) => {
+  sendSuccess(res, await service.confirmReceipt(actorFromRequest(req), id(req)));
+};

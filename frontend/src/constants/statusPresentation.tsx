@@ -8,7 +8,11 @@ import {
   FlaskConical,
   Hourglass,
   Lock,
+  MailQuestionMark,
   PackageCheck,
+  ThumbsDown,
+  ThumbsUp,
+  Undo2,
   Siren,
   TriangleAlert,
   Truck,
@@ -16,7 +20,9 @@ import {
   UserX,
 } from 'lucide-react';
 import type {
+  AllocationStatus,
   AvailabilityStatus,
+  OutreachStatus,
   RequestStatus,
   UnitStatus,
   Urgency,
@@ -60,6 +66,21 @@ export const REQUEST_STATUS_PRESENTATION: Record<RequestStatus, StatusPresentati
   REJECTED: { label: 'Rejected', tone: 'critical', icon: icon(CircleX) },
   CANCELLED: { label: 'Cancelled', tone: 'muted', icon: icon(Ban) },
   EXPIRED: { label: 'Expired', tone: 'muted', icon: icon(Hourglass) },
+};
+
+export const ALLOCATION_STATUS_PRESENTATION: Record<AllocationStatus, StatusPresentation> = {
+  RESERVED: { label: 'Reserved', tone: 'reserved', icon: icon(Lock) },
+  ISSUED: { label: 'Issued', tone: 'info', icon: icon(Truck) },
+  RECEIVED: { label: 'Received', tone: 'success', icon: icon(PackageCheck) },
+  RELEASED: { label: 'Released', tone: 'muted', icon: icon(Undo2) },
+};
+
+export const OUTREACH_STATUS_PRESENTATION: Record<OutreachStatus, StatusPresentation> = {
+  NOTIFIED: { label: 'Awaiting reply', tone: 'neutral', icon: icon(MailQuestionMark) },
+  INTERESTED: { label: 'Interested', tone: 'success', icon: icon(ThumbsUp) },
+  DECLINED: { label: 'Declined', tone: 'muted', icon: icon(ThumbsDown) },
+  NO_RESPONSE: { label: 'No response', tone: 'muted', icon: icon(Hourglass) },
+  DONATED: { label: 'Donated', tone: 'success', icon: icon(CircleCheck) },
 };
 
 export const AVAILABILITY_PRESENTATION: Record<AvailabilityStatus, StatusPresentation> = {

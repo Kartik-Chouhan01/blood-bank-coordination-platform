@@ -1,5 +1,7 @@
 import type {
+  AllocationStatus,
   AvailabilityStatus,
+  OutreachStatus,
   RequestStatus,
   UnitStatus,
   Urgency,
@@ -7,7 +9,9 @@ import type {
 } from '@bbms/shared';
 import { Badge } from '@/components/ui/Badge';
 import {
+  ALLOCATION_STATUS_PRESENTATION,
   AVAILABILITY_PRESENTATION,
+  OUTREACH_STATUS_PRESENTATION,
   REQUEST_STATUS_PRESENTATION,
   UNIT_STATUS_PRESENTATION,
   URGENCY_PRESENTATION,
@@ -19,6 +23,8 @@ type StatusBadgeProps =
   | { kind: 'urgency'; value: Urgency }
   | { kind: 'unit'; value: UnitStatus }
   | { kind: 'request'; value: RequestStatus }
+  | { kind: 'allocation'; value: AllocationStatus }
+  | { kind: 'outreach'; value: OutreachStatus }
   | { kind: 'availability'; value: AvailabilityStatus }
   | { kind: 'verification'; value: VerificationStatus };
 
@@ -30,6 +36,10 @@ function presentationFor(props: StatusBadgeProps): StatusPresentation {
       return UNIT_STATUS_PRESENTATION[props.value];
     case 'request':
       return REQUEST_STATUS_PRESENTATION[props.value];
+    case 'allocation':
+      return ALLOCATION_STATUS_PRESENTATION[props.value];
+    case 'outreach':
+      return OUTREACH_STATUS_PRESENTATION[props.value];
     case 'availability':
       return AVAILABILITY_PRESENTATION[props.value];
     case 'verification':

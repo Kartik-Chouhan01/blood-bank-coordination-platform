@@ -24,6 +24,11 @@ vi.mock('./api', () => ({
   donorStaffApi: { list: vi.fn(), get: vi.fn() },
 }));
 
+vi.mock('@/features/matching/api', () => ({
+  donorOutreachApi: { mine: vi.fn().mockResolvedValue([]), respond: vi.fn() },
+  matchingApi: {},
+}));
+
 function makeDonor(overrides: Partial<DonorSelfView> = {}): DonorSelfView {
   return {
     id: 'donor-1',

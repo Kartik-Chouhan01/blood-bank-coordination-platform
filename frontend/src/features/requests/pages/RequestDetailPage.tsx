@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
-import { ArrowLeft, CheckCircle2, Pencil, Siren, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, PackageCheck, Pencil, Siren, XCircle } from 'lucide-react';
 import {
   COMPONENT_LABELS,
   REQUEST_REASON_LABELS,
@@ -20,13 +20,18 @@ import { ErrorState, LoadingState } from '@/components/ui/States';
 import { MedicalDisclaimer } from '@/components/domain/MedicalDisclaimer';
 import { StatusBadge } from '@/components/domain/StatusBadge';
 import { EntityHistory } from '@/features/audit/components/EntityHistory';
+import { AllocationPanel } from '@/features/matching/components/AllocationPanel';
+import { DonorOutreachPanel } from '@/features/matching/components/DonorOutreachPanel';
 import { toApiClientError } from '@/services/apiError';
 import { formatDateTime } from '@/utils/format';
 import { requestsApi } from '../api';
 import { RequestForm } from '../components/RequestForm';
 import { RequiredBy } from '../components/RequiredBy';
 
-type Dialog = 'edit' | 'escalate' | 'cancel' | 'approve' | 'reject' | null;
+type Dialog = 'edit' | 'escalate' | 'cancel' | 'approve' | 'reject' | 'receipt' | null;
+
+/** Before approval (or after rejection) there is nothing to allocate or contact donors about. */
+const NO_MATCHING = new Set(['PENDING', 'REJECTED']);
 
 function EscalateDialog({
   request,
@@ -191,6 +196,14 @@ export function RequestDetailPage({ area }: { area: 'hospital' | 'admin' }) {
                 </Button>
               </>
             )}
+            {can('CONFIRM_RECEIPT') && (
+              <Button
+                icon={<PackageCheck className="size-4" aria-hidden />}
+                onClick={() => setDialog('receipt')}
+              >
+                Confirm receipt
+              </Button>
+            )}
             {can('EDIT') && (
               <Button
                 variant="secondary"
@@ -285,19 +298,19 @@ export function RequestDetailPage({ area }: { area: 'hospital' | 'admin' }) {
         </Card>
 
         <div className="space-y-6 lg:col-span-2">
-          {area === 'admin' && request.exactMatchAvailable !== null && (
-            <Card>
-              <CardHeader
-                title="Stock"
-                description="Unit reservation and compatible-group matching arrive with the matching workflow."
-              />
-              <p className="px-5 py-4 text-sm text-slate-700">
-                <strong className="text-lg tabular-nums">{request.exactMatchAvailable}</strong>{' '}
-                usable {request.bloodGroup} {COMPONENT_LABELS[request.componentType].toLowerCase()}{' '}
-                unit{request.exactMatchAvailable === 1 ? '' : 's'} in stock (exact group only).
-              </p>
-            </Card>
+          {(request.allocations.length > 0 ||
+            (area === 'admin' ? request.stock !== null : !NO_MATCHING.has(request.status))) && (
+            <AllocationPanel
+              request={request}
+              area={area}
+              onChange={setData}
+              onNotice={setNotice}
+            />
           )}
+          {area === 'admin' &&
+            (request.allowedActions.includes('OUTREACH') || request.outreachStatus !== 'NONE') && (
+              <DonorOutreachPanel request={request} />
+            )}
           <Card>
             <CardHeader title="Progress" description="Every status change, newest first." />
             <ol className="divide-y divide-slate-100">
@@ -366,6 +379,17 @@ export function RequestDetailPage({ area }: { area: 'hospital' | 'admin' }) {
         isLoading={saving}
         onConfirm={(reason) =>
           void run(() => requestsApi.cancel(request.id, { reason: reason! }), 'Request cancelled.')
+        }
+        onCancel={() => setDialog(null)}
+      />
+      <ConfirmationDialog
+        open={dialog === 'receipt'}
+        title="Confirm receipt"
+        description={`Confirm that ${request.allocations.filter((a) => a.status === 'ISSUED').length} issued unit(s) arrived at your hospital.`}
+        confirmLabel="Confirm receipt"
+        isLoading={saving}
+        onConfirm={() =>
+          void run(() => requestsApi.confirmReceipt(request.id), 'Receipt confirmed. Thank you.')
         }
         onCancel={() => setDialog(null)}
       />

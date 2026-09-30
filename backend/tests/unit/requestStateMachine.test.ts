@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   REQUEST_TRANSITIONS,
   canTransition,
+  statusForAllocatedUnits,
 } from '../../src/domain/requests/requestStateMachine.js';
 
 describe('request state machine', () => {
@@ -47,5 +48,22 @@ describe('request state machine', () => {
     expect(
       REQUEST_TRANSITIONS.filter((r) => r.to === 'EXPIRED').every((r) => r.by === 'SYSTEM'),
     ).toBe(true);
+  });
+});
+
+describe('statusForAllocatedUnits', () => {
+  it('maps reserved/issued counts to the allocation status', () => {
+    expect(statusForAllocatedUnits(0, 3)).toBe('APPROVED');
+    expect(statusForAllocatedUnits(2, 3)).toBe('PARTIALLY_ALLOCATED');
+    expect(statusForAllocatedUnits(3, 3)).toBe('ALLOCATED');
+  });
+
+  it('has a rule for every move between allocation statuses', () => {
+    const states = ['APPROVED', 'PARTIALLY_ALLOCATED', 'ALLOCATED'] as const;
+    for (const from of states) {
+      for (const to of states) {
+        if (from !== to) expect(canTransition(from, to, 'ALLOCATION')).toBe(true);
+      }
+    }
   });
 });

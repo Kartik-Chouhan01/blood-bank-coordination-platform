@@ -363,17 +363,17 @@ describe('queue, stats and expiry', () => {
     expect(stillOpen.body.data).toMatchObject({ status: 'PENDING', overdue: true });
   });
 
-  it('shows staff how many exact-match units are in stock', async () => {
+  it('shows staff the compatible stock, and hides it from hospitals', async () => {
     const r = await raise(hospital);
     const detail = await request(app)
       .get(`/api/requests/${r.id}`)
       .set('Authorization', staff)
       .expect(200);
-    expect(detail.body.data.exactMatchAvailable).toBe(0);
+    expect(detail.body.data.stock).toEqual({ exact: 0, compatibleSubstitutes: 0 });
     const own = await request(app)
       .get(`/api/requests/${r.id}`)
       .set('Authorization', hospital)
       .expect(200);
-    expect(own.body.data.exactMatchAvailable).toBeNull();
+    expect(own.body.data.stock).toBeNull();
   });
 });

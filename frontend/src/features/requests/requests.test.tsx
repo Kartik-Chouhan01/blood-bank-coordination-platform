@@ -74,7 +74,9 @@ function makeRequest(overrides: Partial<BloodRequestDetail> = {}): BloodRequestD
       },
     ],
     allowedActions: ['EDIT', 'ESCALATE', 'CANCEL'],
-    exactMatchAvailable: null,
+    stock: null,
+    allocations: [],
+    outreachStatus: 'NONE',
     ...overrides,
   };
 }
@@ -181,7 +183,10 @@ describe('request detail', () => {
   it('lets staff approve a pending request', async () => {
     vi.mocked(refreshSession).mockResolvedValue(sessionFor(makeUser('BLOOD_BANK_STAFF')));
     vi.mocked(requestsApi.get).mockResolvedValue(
-      makeRequest({ allowedActions: ['REVIEW', 'CANCEL'], exactMatchAvailable: 3 }),
+      makeRequest({
+        allowedActions: ['REVIEW', 'CANCEL'],
+        stock: { exact: 3, compatibleSubstitutes: 1 },
+      }),
     );
     vi.mocked(requestsApi.review).mockResolvedValue(
       makeRequest({ status: 'APPROVED', allowedActions: ['CANCEL'] }),
@@ -189,7 +194,7 @@ describe('request detail', () => {
     renderApp('/admin/requests/r1');
 
     expect(
-      await screen.findByText(/usable O\+ packed red blood cells units in stock/),
+      await screen.findByText(/In stock: 3 exact-group, 1 compatible substitute unit\./),
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
     const confirm = Array.from(screen.getByRole('dialog').querySelectorAll('button')).find(

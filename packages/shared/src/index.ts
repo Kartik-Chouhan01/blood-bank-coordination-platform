@@ -21,3 +21,5 @@ export * from './validation/inventory.js';
 export * from './constants/requests.js';
 export * from './api/requests.js';
 export * from './validation/requests.js';
+export * from './api/matching.js';
+export * from './validation/matching.js';

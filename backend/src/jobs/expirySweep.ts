@@ -5,6 +5,10 @@ import { withTransaction } from '../utils/mongoose.js';
 import { AppError } from '../utils/AppError.js';
 import { BloodUnitModel } from '../modules/inventory/bloodUnit.model.js';
 import { transitionUnit } from '../modules/inventory/unitTransitions.js';
+import { AllocationModel } from '../modules/matching/allocation.model.js';
+import { releaseAllocationInSession } from '../modules/matching/allocationWorkflow.js';
+
+const REASON = 'Reached expiry date';
 
 const BATCH_SIZE = 500;
 
@@ -13,8 +17,10 @@ const BATCH_SIZE = 500;
  * state machine (history + audit per unit). Safe to run concurrently or on several instances:
  * each change is a compare-and-set, so a unit is only ever expired once.
  *
+ * A RESERVED unit's allocation is released in the same transaction, so the request it was held for
+ * shows the shortfall again (staff notifications arrive with Phase 8).
+ *
  * Correctness never depends on this job — every inventory query also excludes units past expiry.
- * TODO(Phase 7): expiring a RESERVED unit must also release its allocation and notify staff.
  */
 export async function runExpirySweep(now = new Date()): Promise<number> {
   let expired = 0;
@@ -30,16 +36,34 @@ export async function runExpirySweep(now = new Date()): Promise<number> {
 
     for (const unit of due) {
       try {
-        await withTransaction((session) =>
-          transitionUnit({
-            unit,
-            to: 'EXPIRED',
-            by: 'SYSTEM',
-            actor: SYSTEM_ACTOR,
-            reason: 'Reached expiry date',
-            session,
-          }),
-        );
+        await withTransaction(async (session) => {
+          const allocation =
+            unit.status === 'RESERVED'
+              ? await AllocationModel.findOne({ unitId: unit._id, status: 'RESERVED' })
+                  .select('_id status unitId requestId')
+                  .session(session)
+                  .lean()
+              : null;
+          if (allocation) {
+            await releaseAllocationInSession({
+              allocation,
+              actor: SYSTEM_ACTOR,
+              reason: REASON,
+              unitTo: 'EXPIRED',
+              session,
+            });
+          } else {
+            await transitionUnit({
+              unit,
+              to: 'EXPIRED',
+              by: 'SYSTEM',
+              actor: SYSTEM_ACTOR,
+              reason: REASON,
+              ...(unit.status === 'RESERVED' && { set: { currentAllocationId: null } }),
+              session,
+            });
+          }
+        });
         expired += 1;
       } catch (err) {
         // Someone changed the unit concurrently; the next sweep will look at it again.

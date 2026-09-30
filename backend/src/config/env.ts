@@ -80,6 +80,14 @@ const envSchema = z.object({
   EXPIRY_SWEEP_INTERVAL_MINUTES: z.coerce.number().int().min(1).max(1440).default(5),
   /** Open requests stay "overdue" (still actionable) this long after required-by before expiring. */
   REQUEST_EXPIRY_GRACE_HOURS: z.coerce.number().int().min(0).max(168).default(2),
+  /** A reservation not issued within this many hours is released automatically. */
+  RESERVATION_HOLD_HOURS: z.coerce.number().int().min(1).max(168).default(24),
+  /** Donor search radius around the hospital; EMERGENCY requests search wider. */
+  DONOR_SEARCH_RADIUS_KM: z.coerce.number().int().min(1).max(500).default(25),
+  DONOR_SEARCH_RADIUS_EMERGENCY_KM: z.coerce.number().int().min(1).max(500).default(50),
+  /** Contact about this many donors per missing unit (not everyone responds), up to the cap. */
+  OUTREACH_DONORS_PER_UNIT: z.coerce.number().int().min(1).max(10).default(3),
+  OUTREACH_MAX_DONORS: z.coerce.number().int().min(1).max(50).default(30),
   /** Background jobs (expiry sweep). Disabled in tests; tests call jobs directly. */
   JOBS_ENABLED: z
     .enum(['true', 'false'])

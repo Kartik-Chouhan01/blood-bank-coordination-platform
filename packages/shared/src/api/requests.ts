@@ -1,6 +1,7 @@
 import type { BloodGroup, ComponentType } from '../constants/blood.js';
 import type { RequestReasonCategory } from '../constants/requests.js';
-import type { RequestStatus, Urgency } from '../constants/statuses.js';
+import type { RequestOutreachStatus, RequestStatus, Urgency } from '../constants/statuses.js';
+import type { AllocationView } from './matching.js';
 
 export interface RequestStatusChange {
   from: RequestStatus | null;
@@ -11,7 +12,17 @@ export interface RequestStatusChange {
   reason: string | null;
 }
 
-export type RequestAction = 'EDIT' | 'ESCALATE' | 'CANCEL' | 'REVIEW';
+export type RequestAction =
+  | 'EDIT'
+  | 'ESCALATE'
+  | 'CANCEL'
+  | 'REVIEW'
+  /** Staff: reserve units from inventory. */
+  | 'ALLOCATE'
+  /** Staff: search for and contact potential donors. */
+  | 'OUTREACH'
+  /** Hospital: confirm that issued units arrived. */
+  | 'CONFIRM_RECEIPT';
 
 export interface BloodRequestSummary {
   id: string;
@@ -41,8 +52,11 @@ export interface BloodRequestDetail extends BloodRequestSummary {
   statusHistory: RequestStatusChange[];
   /** What the current viewer may do right now. */
   allowedActions: RequestAction[];
-  /** Staff only: usable units in stock of exactly this group and component (compatibility comes in Phase 7). */
-  exactMatchAvailable: number | null;
+  /** Staff only: usable, compatible units in stock for this request. */
+  stock: { exact: number; compatibleSubstitutes: number } | null;
+  /** Units reserved, issued and received against this request (releases are kept for history). */
+  allocations: AllocationView[];
+  outreachStatus: RequestOutreachStatus;
 }
 
 export interface RequestStats {

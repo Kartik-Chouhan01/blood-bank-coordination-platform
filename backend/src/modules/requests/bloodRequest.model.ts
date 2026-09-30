@@ -2,12 +2,14 @@ import { Schema, model, type Types } from 'mongoose';
 import {
   BLOOD_GROUPS,
   COMPONENT_TYPES,
+  REQUEST_OUTREACH_STATUSES,
   REQUEST_REASON_CATEGORIES,
   REQUEST_STATUSES,
   URGENCY_LEVELS,
   URGENCY_RANK,
   type BloodGroup,
   type ComponentType,
+  type RequestOutreachStatus,
   type RequestReasonCategory,
   type RequestStatus,
   type Urgency,
@@ -30,9 +32,12 @@ export interface BloodRequest {
   bloodGroup: BloodGroup;
   componentType: ComponentType;
   unitsRequested: number;
-  /** Maintained by the allocation workflow (Phase 7). */
+  /** Units currently reserved or issued (maintained only by the allocation workflow). */
   unitsAllocated: number;
   unitsIssued: number;
+  /** Incremented on every allocation change; guards concurrent reservations of the same request. */
+  version: number;
+  outreachStatus: RequestOutreachStatus;
   urgency: Urgency;
   /** 0 = EMERGENCY, 1 = URGENT, 2 = ROUTINE — stored so the queue sorts by priority in the database. */
   urgencyRank: number;
@@ -59,6 +64,8 @@ const bloodRequestSchema = new Schema<BloodRequest>(
     unitsRequested: { type: Number, required: true, min: 1 },
     unitsAllocated: { type: Number, default: 0, min: 0 },
     unitsIssued: { type: Number, default: 0, min: 0 },
+    version: { type: Number, default: 0 },
+    outreachStatus: { type: String, enum: REQUEST_OUTREACH_STATUSES, default: 'NONE' },
     urgency: { type: String, enum: URGENCY_LEVELS, required: true },
     urgencyRank: { type: Number, required: true },
     requiredBy: { type: Date, required: true },
