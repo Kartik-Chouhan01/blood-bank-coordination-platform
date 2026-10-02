@@ -21,7 +21,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL VITE_EMERGENCY_HOTLINE=$VITE_EMERGENCY_
 RUN npm run build -w @bbms/shared && npm run build -w @bbms/frontend
 
 # ── Runtime: unprivileged nginx ─────────────────────────────────────────────
-FROM nginxinc/nginx-unprivileged:1.27-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/frontend/dist /usr/share/nginx/html
 EXPOSE 8080
