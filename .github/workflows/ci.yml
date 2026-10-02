@@ -24,7 +24,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       # The integration tests start a real MongoDB replica set; cache its binary.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: node_modules/.cache/mongodb-memory-server
           key: mongodb-binary-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
