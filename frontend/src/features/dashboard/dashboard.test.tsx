@@ -141,7 +141,14 @@ describe('analytics', () => {
     const hit = within(trend).getByLabelText(/arrow keys/);
     fireEvent.focus(hit);
     const tooltip = await screen.findByRole('status');
-    expect(tooltip).toHaveTextContent('30 September 2026');
+    // Formatted in the viewer's locale, so build the expectation the same way.
+    const day = new Intl.DateTimeFormat(undefined, {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date('2026-09-30T00:00:00Z'));
+    expect(tooltip).toHaveTextContent(day);
     expect(tooltip).toHaveTextContent('6Raised');
     fireEvent.keyDown(hit, { key: 'ArrowLeft' });
     expect(screen.getByRole('status')).toHaveTextContent('5Raised');

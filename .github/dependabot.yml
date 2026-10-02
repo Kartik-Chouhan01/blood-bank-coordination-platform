@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
+    # Major versions (e.g. TypeScript 7, React Router 8) need deliberate upgrade work; they are
+    # done by hand rather than proposed automatically every week.
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
     groups:
       # Tooling updates together; runtime dependencies stay individual so they are reviewed.
       dev-tooling:
@@ -14,11 +19,18 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  # Images stay on the Node LTS line and the pinned nginx minor; only patch/minor updates.
   - package-ecosystem: docker
     directory: /backend
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: docker
     directory: /frontend
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
