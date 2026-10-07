@@ -1,9 +1,9 @@
-# DigiRakt — Blood Bank Management & Emergency Blood Coordination
+# DigiRakt - Blood Bank Management & Emergency Blood Coordination
 
 > Connecting blood donors, hospitals, and blood banks when every unit matters.
 
 A full-stack (MongoDB · Express · React · Node, TypeScript) platform that manages the lifecycle of
-blood — donation → testing → inventory → request → reservation → issue → receipt — while
+blood - donation → testing → inventory → request → reservation → issue → receipt — while
 coordinating hospitals, blood banks, administrators and potential donors.
 
 > **Medical safety boundary.** This is an administrative coordination system. All blood collection,
@@ -14,7 +14,7 @@ coordinating hospitals, blood banks, administrators and potential donors.
 
 | Phase | Scope                                                                                                       | Status  |
 | ----- | ----------------------------------------------------------------------------------------------------------- | ------- |
-| 1     | Foundation — monorepo, config, database, logging, error handling, health check, UI primitives, public pages | ✅ Done |
+| 1     | Foundation - monorepo, config, database, logging, error handling, health check, UI primitives, public pages | ✅ Done |
 | 2     | Authentication & role-based access control, admin user management                                           | ✅ Done |
 | 3     | Donor profiles, availability, notification preferences; staff donor directory & verification                | ✅ Done |
 | 4     | Hospitals & verification, blood banks, staff invitations, audit log viewer                                  | ✅ Done |
@@ -26,8 +26,8 @@ coordinating hospitals, blood banks, administrators and potential donors.
 | 10    | Security & audit review, system settings, account deletion                                                  | ✅ Done |
 | 11    | Test hardening, seed data, OpenAPI docs, deployment config                                                  | ✅ Done |
 
-The full design — entities, APIs, state machines, matching algorithms and **every deliberate change
-from the original specification** — is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The security
+The full design - entities, APIs, state machines, matching algorithms and **every deliberate change
+from the original specification** - is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The security
 review (threat model, controls, findings) is in [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Tech stack
@@ -44,8 +44,8 @@ review (threat model, controls, findings) is in [docs/SECURITY.md](docs/SECURITY
 
 ```text
 packages/shared   Domain enums, error codes, API contract types shared by backend and frontend
-backend/          REST API — feature modules under src/modules/<name>/
-frontend/         React SPA — feature folders under src/features/<name>/
+backend/          REST API - feature modules under src/modules/<name>/
+frontend/         React SPA - feature folders under src/features/<name>/
 deploy/           nginx config (SPA + /api proxy + security headers), production env template
 docs/             Architecture, security review, deployment guide, generated OpenAPI document
 .github/          CI (typecheck, lint, tests with coverage, audit, container builds) and Dependabot
@@ -108,7 +108,7 @@ npm run seed -w @bbms/backend
 
 It creates two blood banks, staff, four hospitals, 48 donors, tested stock, requests at every stage
 (pending, partly allocated, awaiting receipt, completed, rejected, cancelled, an emergency),
-donor outreach, notifications and 60 days of history for the analytics page — all through the
+donor outreach, notifications and 60 days of history for the analytics page - all through the
 application's own services. Accounts are printed at the end (`admin@digirakt.test`,
 `staff.pune@digirakt.test`, `citygeneral@digirakt.test`, `donor01@digirakt.test`, …) and share
 one password (`SEED_PASSWORD`, or a generated one shown once). It only runs on an empty database;
